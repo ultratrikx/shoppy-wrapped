@@ -15,7 +15,8 @@ import {
     useAsyncStorage,
     // MerchantCard,
 } from "@shopify/shop-minis-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { generateShoppingPersona } from "./services/openai";
 
 function getVendor(product: any) {
     return product.vendor || "Mock Vendor " + ((product.id % 3) + 1);
@@ -124,6 +125,40 @@ export function useUserDataAggregate() {
         return vendorArray;
     }, [orders]);
 
+    // Top purchased products
+    const topPurchasedProducts = useMemo(() => {
+        if (!orders || orders.length === 0) return [];
+
+        const productCountMap: Record<string, number> = {};
+
+        // Count product purchases
+        orders.forEach((order) => {
+            order.lineItems.forEach((item) => {
+                const product = item.product;
+                if (!product || !product.title) return;
+
+                const productName = product.title;
+                const quantity = item.quantity || 1;
+
+                if (!productCountMap[productName]) {
+                    productCountMap[productName] = 0;
+                }
+                productCountMap[productName] += quantity;
+            });
+        });
+
+        // Convert to array and sort by purchase count
+        const productsArray = Object.entries(productCountMap)
+            .map(([name, count]) => ({
+                name,
+                count,
+            }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 100); // Get top 100
+
+        return productsArray;
+    }, [orders]);
+
     // Shopping Streak (simulate with local storage)
     function getToday() {
         return new Date().toISOString().slice(0, 10);
@@ -176,7 +211,9 @@ export function useUserDataAggregate() {
             // Extract date from order - use a fallback since we don't have processedAt
             // For demo purposes, create a random date within the last year
             const randomDate = new Date();
-            randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 365));
+            randomDate.setDate(
+                randomDate.getDate() - Math.floor(Math.random() * 365)
+            );
             const dateKey = randomDate.toISOString().split("T")[0]; // YYYY-MM-DD format
 
             // Calculate order total
@@ -211,16 +248,18 @@ export function useUserDataAggregate() {
         });
 
         // Format date for display if we have one
-        const formattedHighestDay = highestSpendingDay.date 
+        const formattedHighestDay = highestSpendingDay.date
             ? {
-                date: highestSpendingDay.date,
-                amount: highestSpendingDay.amount,
-                formattedDate: new Date(highestSpendingDay.date).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric"
-                })
-            } 
+                  date: highestSpendingDay.date,
+                  amount: highestSpendingDay.amount,
+                  formattedDate: new Date(
+                      highestSpendingDay.date
+                  ).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                  }),
+              }
             : { date: null, amount: 0, formattedDate: "No data" };
 
         // Convert daily spending map to array
@@ -230,11 +269,12 @@ export function useUserDataAggregate() {
                 amount: +amount.toFixed(2),
                 formattedDate: new Date(date).toLocaleDateString("en-US", {
                     month: "short",
-                    day: "numeric"
-                })
+                    day: "numeric",
+                }),
             }))
             .sort(
-                (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+                (a, b) =>
+                    new Date(a.date).getTime() - new Date(b.date).getTime()
             );
 
         return {
@@ -254,22 +294,34 @@ export function useUserDataAggregate() {
         const totalSaved = purchaseSummary.totalSaved;
 
         // Calculate percentage difference from average
-        const spentDiffPercentage = avgUserSpent > 0
-            ? Math.round(((totalSpent - avgUserSpent) / avgUserSpent) * 100)
-            : 0;
+        const spentDiffPercentage =
+            avgUserSpent > 0
+                ? Math.round(((totalSpent - avgUserSpent) / avgUserSpent) * 100)
+                : 0;
 
-        const savedDiffPercentage = avgUserSaved > 0
-            ? Math.round(((totalSaved - avgUserSaved) / avgUserSaved) * 100)
-            : 0;
+        const savedDiffPercentage =
+            avgUserSaved > 0
+                ? Math.round(((totalSaved - avgUserSaved) / avgUserSaved) * 100)
+                : 0;
 
         // Generate meaningful messages based on comparison
-        const spendingMessage = totalSpent > avgUserSpent
-            ? `You spent ${Math.abs(spentDiffPercentage)}% more than the average shopper`
-            : `You spent ${Math.abs(spentDiffPercentage)}% less than the average shopper`;
+        const spendingMessage =
+            totalSpent > avgUserSpent
+                ? `You spent ${Math.abs(
+                      spentDiffPercentage
+                  )}% more than the average shopper`
+                : `You spent ${Math.abs(
+                      spentDiffPercentage
+                  )}% less than the average shopper`;
 
-        const savingMessage = totalSaved > avgUserSaved
-            ? `You saved ${Math.abs(savedDiffPercentage)}% more than the average shopper`
-            : `You saved ${Math.abs(savedDiffPercentage)}% less than the average shopper`;
+        const savingMessage =
+            totalSaved > avgUserSaved
+                ? `You saved ${Math.abs(
+                      savedDiffPercentage
+                  )}% more than the average shopper`
+                : `You saved ${Math.abs(
+                      savedDiffPercentage
+                  )}% less than the average shopper`;
 
         return {
             avgUserSpent,
@@ -279,9 +331,74 @@ export function useUserDataAggregate() {
             aboveAvgSpending: totalSpent > avgUserSpent,
             aboveAvgSaving: totalSaved > avgUserSaved,
             spendingMessage,
-            savingMessage
+            savingMessage,
         };
     }, [moneySpentData.totalSpent, purchaseSummary.totalSaved]);
+
+    // Shopping persona generation
+    const [shoppingPersona, setShoppingPersona] = useState<{
+        persona: string;
+        description: string;
+        isLoading: boolean;
+        error: string | null;
+    }>({
+        persona: "",
+        description: "",
+        isLoading: false,
+        error: null,
+    });
+
+    // Function to generate shopping persona
+    const generatePersona = useCallback(async () => {
+        if (!orders || orders.length === 0 || topOrderedVendors.length === 0)
+            return;
+
+        // Don't re-generate if we already have a persona and no errors
+        if (shoppingPersona.persona && !shoppingPersona.error) return;
+
+        setShoppingPersona((prev) => ({
+            ...prev,
+            isLoading: true,
+            error: null,
+        }));
+
+        try {
+            const result = await generateShoppingPersona({
+                topOrderedVendors,
+                productsBought: purchaseSummary.totalBought,
+                moneySpent: moneySpentData.totalSpent,
+                totalSaved: purchaseSummary.totalSaved,
+                topProducts: topPurchasedProducts,
+            });
+
+            setShoppingPersona({
+                persona: result.persona,
+                description: result.description,
+                isLoading: false,
+                error: null,
+            });
+        } catch (error) {
+            console.error("Failed to generate shopping persona:", error);
+            setShoppingPersona((prev) => ({
+                ...prev,
+                isLoading: false,
+                error: "Failed to generate your shopping persona.",
+            }));
+        }
+    }, [
+        orders,
+        topOrderedVendors,
+        topPurchasedProducts,
+        purchaseSummary.totalBought,
+        moneySpentData.totalSpent,
+        purchaseSummary.totalSaved,
+        shoppingPersona.persona,
+    ]);
+
+    // Generate persona when data is available
+    useEffect(() => {
+        generatePersona();
+    }, [generatePersona]);
 
     return {
         productsBought: purchaseSummary.totalBought,
@@ -289,6 +406,7 @@ export function useUserDataAggregate() {
         discountedProducts: purchaseSummary.products,
         topVendors: vendorStats,
         topOrderedVendors: topOrderedVendors,
+        topPurchasedProducts,
         shoppingStreak: streak,
         recommendedProducts,
         recommendedShops,
@@ -306,6 +424,7 @@ export function useUserDataAggregate() {
         aboveAvgSaving: comparisonData.aboveAvgSaving,
         spendingMessage: comparisonData.spendingMessage,
         savingMessage: comparisonData.savingMessage,
+        shoppingPersona, // Expose shopping persona state
     };
 }
 
@@ -637,7 +756,9 @@ export function App() {
                                         className="flex justify-between"
                                     >
                                         <span className="text-gray-700">
-                                            {new Date(entry.date).toLocaleDateString()}
+                                            {new Date(
+                                                entry.date
+                                            ).toLocaleDateString()}
                                         </span>
                                         <span className="font-medium">
                                             ${entry.amount.toFixed(2)}
@@ -900,7 +1021,7 @@ export function App() {
                             ))}
                         </div>
                     </div>
-                )} */}
+                } */}
             </div>
         </main>
     );

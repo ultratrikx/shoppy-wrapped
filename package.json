@@ -9,8 +9,10 @@
   },
   "dependencies": {
     "@shopify/shop-minis-react": "latest",
+    "dotenv": "^16.5.0",
     "framer-motion": "^12.19.1",
     "html2canvas": "^1.4.1",
+    "openai": "^5.7.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },

@@ -55,6 +55,12 @@ const stories = [
         emoji: "📈",
         duration: 5000,
     },
+    {
+        id: 9,
+        text: "Your Shopping Persona",
+        emoji: "🌟",
+        duration: 5000,
+    },
 ];
 
 // Food and fun emojis for floating animations (from newStories.tsx)
@@ -92,6 +98,7 @@ const emojiMap = {
     shoppingDay: ["📅", "📆", "🗓️", "⏰", "⌚"],
     moneySaved: ["💲", "💹", "📈", "🔖", "🏷️"],
     comparison: ["📊", "📈", "📉", "🔍", "🧮"],
+    persona: ["🌟", "✨", "🎭", "👑", "🔮"],
 };
 
 // Helper functions from newStories.tsx
@@ -685,7 +692,9 @@ const Stories = () => {
                                 >
                                     {renderFloatingEmojis(emojiMap.moneySpent)}
                                     <div className="money-stat">
-                                        <div className="money-label">You've spent</div>
+                                        <div className="money-label">
+                                            You've spent
+                                        </div>
                                         <motion.div
                                             className="money-value"
                                             initial={{ opacity: 0, y: 20 }}
@@ -693,7 +702,10 @@ const Stories = () => {
                                                 opacity: showStats ? 1 : 0,
                                                 y: showStats ? 0 : 20,
                                             }}
-                                            transition={{ duration: 0.5, delay: 1 }}
+                                            transition={{
+                                                duration: 0.5,
+                                                delay: 1,
+                                            }}
                                         >
                                             ${userData.moneySpent}
                                         </motion.div>
@@ -729,14 +741,22 @@ const Stories = () => {
                                                 opacity: showStats ? 1 : 0,
                                                 y: showStats ? 0 : 20,
                                             }}
-                                            transition={{ duration: 0.5, delay: 1 }}
+                                            transition={{
+                                                duration: 0.5,
+                                                delay: 1,
+                                            }}
                                         >
                                             {userData.highestSpendingDay.date
-                                                ? new Date(userData.highestSpendingDay.date).toLocaleDateString("en-US", {
-                                                      month: "long",
-                                                      day: "numeric",
-                                                      year: "numeric",
-                                                  })
+                                                ? new Date(
+                                                      userData.highestSpendingDay.date
+                                                  ).toLocaleDateString(
+                                                      "en-US",
+                                                      {
+                                                          month: "long",
+                                                          day: "numeric",
+                                                          year: "numeric",
+                                                      }
+                                                  )
                                                 : "No shopping days yet"}
                                         </motion.div>
                                         <motion.div
@@ -746,9 +766,13 @@ const Stories = () => {
                                                 opacity: showStats ? 1 : 0,
                                                 y: showStats ? 0 : 20,
                                             }}
-                                            transition={{ duration: 0.5, delay: 1.3 }}
+                                            transition={{
+                                                duration: 0.5,
+                                                delay: 1.3,
+                                            }}
                                         >
-                                            ${userData.highestSpendingDay.amount}
+                                            $
+                                            {userData.highestSpendingDay.amount}
                                         </motion.div>
                                         <div className="money-description">
                                             was spent on this day
@@ -772,7 +796,9 @@ const Stories = () => {
                                 >
                                     {renderFloatingEmojis(emojiMap.moneySaved)}
                                     <div className="money-stat">
-                                        <div className="money-label">You've saved</div>
+                                        <div className="money-label">
+                                            You've saved
+                                        </div>
                                         <motion.div
                                             className="money-value saved-value"
                                             initial={{ opacity: 0, y: 20 }}
@@ -780,7 +806,10 @@ const Stories = () => {
                                                 opacity: showStats ? 1 : 0,
                                                 y: showStats ? 0 : 20,
                                             }}
-                                            transition={{ duration: 0.5, delay: 1 }}
+                                            transition={{
+                                                duration: 0.5,
+                                                delay: 1,
+                                            }}
                                         >
                                             ${userData.totalSaved}
                                         </motion.div>
@@ -805,7 +834,9 @@ const Stories = () => {
                                     transition={{ duration: 0.5 }}
                                 >
                                     {renderFloatingEmojis(emojiMap.comparison)}
-                                    <div className="comparison-title">How You Compare</div>
+                                    <div className="comparison-title">
+                                        How You Compare
+                                    </div>
                                 </motion.div>
 
                                 <motion.div
@@ -817,19 +848,29 @@ const Stories = () => {
                                     }}
                                     transition={{ duration: 0.5, delay: 0.3 }}
                                 >
-                                    {renderFloatingEmojis(emojiMap.moneySpent.slice(0, 2))}
+                                    {renderFloatingEmojis(
+                                        emojiMap.moneySpent.slice(0, 2)
+                                    )}
                                     <div className="comparison-stat">
-                                        <div className="comparison-label">Spending</div>
+                                        <div className="comparison-label">
+                                            Spending
+                                        </div>
                                         <motion.div
                                             className="comparison-value"
                                             initial={{ opacity: 0 }}
-                                            animate={{ opacity: showStats ? 1 : 0 }}
-                                            transition={{ duration: 0.3, delay: 1 }}
+                                            animate={{
+                                                opacity: showStats ? 1 : 0,
+                                            }}
+                                            transition={{
+                                                duration: 0.3,
+                                                delay: 1,
+                                            }}
                                         >
                                             ${userData.moneySpent}
                                         </motion.div>
                                         <div className="comparison-avg">
-                                            Average user: ${userData.avgUserSpent}
+                                            Average user: $
+                                            {userData.avgUserSpent}
                                         </div>
                                         <div
                                             className={`comparison-diff ${
@@ -838,7 +879,9 @@ const Stories = () => {
                                                     : "below"
                                             }`}
                                         >
-                                            {userData.aboveAvgSpending ? "+" : ""}
+                                            {userData.aboveAvgSpending
+                                                ? "+"
+                                                : ""}
                                             {userData.spentDiffPercentage}%
                                         </div>
                                     </div>
@@ -853,19 +896,29 @@ const Stories = () => {
                                     }}
                                     transition={{ duration: 0.5, delay: 0.5 }}
                                 >
-                                    {renderFloatingEmojis(emojiMap.moneySaved.slice(0, 2))}
+                                    {renderFloatingEmojis(
+                                        emojiMap.moneySaved.slice(0, 2)
+                                    )}
                                     <div className="comparison-stat">
-                                        <div className="comparison-label">Savings</div>
+                                        <div className="comparison-label">
+                                            Savings
+                                        </div>
                                         <motion.div
                                             className="comparison-value"
                                             initial={{ opacity: 0 }}
-                                            animate={{ opacity: showStats ? 1 : 0 }}
-                                            transition={{ duration: 0.3, delay: 1.2 }}
+                                            animate={{
+                                                opacity: showStats ? 1 : 0,
+                                            }}
+                                            transition={{
+                                                duration: 0.3,
+                                                delay: 1.2,
+                                            }}
                                         >
                                             ${userData.totalSaved}
                                         </motion.div>
                                         <div className="comparison-avg">
-                                            Average user: ${userData.avgUserSaved}
+                                            Average user: $
+                                            {userData.avgUserSaved}
                                         </div>
                                         <div
                                             className={`comparison-diff ${
@@ -879,6 +932,146 @@ const Stories = () => {
                                         </div>
                                     </div>
                                 </motion.div>
+                            </div>
+                        )}
+
+                        {/* Shopping Persona Story */}
+                        {currentStoryIndex === 8 && (
+                            <div className="user-stats-wrapper persona-wrapper">
+                                {userData.shoppingPersona?.isLoading ? (
+                                    <motion.div
+                                        className="stat-card persona-card"
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{
+                                            opacity: showStats ? 1 : 0,
+                                            scale: showStats ? 1 : 0.8,
+                                        }}
+                                        transition={{ duration: 0.7 }}
+                                    >
+                                        <div className="persona-loading">
+                                            <div className="persona-spinner"></div>
+                                            <div className="persona-loading-text">
+                                                Analyzing your shopping style...
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ) : userData.shoppingPersona?.error ? (
+                                    <motion.div
+                                        className="stat-card persona-card"
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{
+                                            opacity: showStats ? 1 : 0,
+                                            scale: showStats ? 1 : 0.8,
+                                        }}
+                                        transition={{ duration: 0.7 }}
+                                    >
+                                        <div className="persona-title">
+                                            Your Shopping Persona
+                                        </div>
+                                        <div className="persona-icon">🛍️</div>
+                                        <div className="persona-name">
+                                            Style Explorer
+                                        </div>
+                                        <div className="persona-description">
+                                            You have a unique approach to
+                                            shopping that defies categorization!
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        className="stat-card persona-card"
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{
+                                            opacity: showStats ? 1 : 0,
+                                            scale: showStats ? 1 : 0.8,
+                                        }}
+                                        transition={{ duration: 0.7 }}
+                                    >
+                                        {renderFloatingEmojis(emojiMap.persona)}
+                                        <div className="persona-title">
+                                            Your Shopping Persona is
+                                        </div>
+                                        <motion.div
+                                            className="persona-name"
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{
+                                                opacity: showStats ? 1 : 0,
+                                                y: showStats ? 0 : 20,
+                                            }}
+                                            transition={{
+                                                duration: 0.5,
+                                                delay: 1,
+                                            }}
+                                        >
+                                            {userData.shoppingPersona
+                                                ?.persona || "Style Explorer"}
+                                        </motion.div>
+                                        <motion.div
+                                            className="persona-description"
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{
+                                                opacity: showStats ? 1 : 0,
+                                                y: showStats ? 0 : 20,
+                                            }}
+                                            transition={{
+                                                duration: 0.5,
+                                                delay: 1.3,
+                                            }}
+                                        >
+                                            {userData.shoppingPersona
+                                                ?.description ||
+                                                "You have a unique and personalized approach to shopping!"}
+                                        </motion.div>
+
+                                        {/* Top products */}
+                                        {userData.topPurchasedProducts &&
+                                            userData.topPurchasedProducts
+                                                .length > 0 && (
+                                                <motion.div
+                                                    className="persona-top-products"
+                                                    initial={{
+                                                        opacity: 0,
+                                                        y: 20,
+                                                    }}
+                                                    animate={{
+                                                        opacity: showStats
+                                                            ? 1
+                                                            : 0,
+                                                        y: showStats ? 0 : 20,
+                                                    }}
+                                                    transition={{
+                                                        duration: 0.5,
+                                                        delay: 1.6,
+                                                    }}
+                                                >
+                                                    <div className="persona-top-products-title">
+                                                        Your top purchases:
+                                                    </div>
+                                                    <div className="persona-top-products-list">
+                                                        {userData.topPurchasedProducts
+                                                            .slice(0, 3)
+                                                            .map(
+                                                                (
+                                                                    product,
+                                                                    idx
+                                                                ) => (
+                                                                    <div
+                                                                        key={
+                                                                            idx
+                                                                        }
+                                                                        className="persona-product-item"
+                                                                    >
+                                                                        {
+                                                                            product.name
+                                                                        }
+                                                                    </div>
+                                                                )
+                                                            )}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                    </motion.div>
+                                )}
                             </div>
                         )}
                     </div>
