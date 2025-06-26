@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
     useOrders,
     useCurrentUser,
@@ -24,6 +24,7 @@ interface ShoppingStats {
     topCategory?: string;
     persona?: string;
     personaDescription?: string;
+    moneySaved?: number; // Add moneySaved to stats
 }
 
 const storyFrames = [
@@ -31,6 +32,7 @@ const storyFrames = [
     "analyzing",
     "totalSpent",
     "ordersCount",
+    "moneySaved", // Added moneySaved frame
     "favoriteShop",
     "topProduct",
     "shoppingStyle",
@@ -69,6 +71,52 @@ export function App() {
 
     // Ref for capturing the share frame
     const shareFrameRef = useRef<HTMLDivElement>(null);
+
+    // Purchase & Discount Summary
+    const purchaseSummary = useMemo(() => {
+        if (!orders || orders.length === 0) {
+            return {
+                totalBought: 0,
+                totalSaved: 0,
+                products: [],
+            };
+        }
+        let totalBought = 0;
+        let totalSaved = 0;
+        const discountedProducts: {
+            name: string;
+            originalPrice: number;
+            discountedPrice: number;
+            saved: number;
+        }[] = [];
+        orders.forEach((order) => {
+            order.lineItems.forEach((item) => {
+                const product = item.product;
+                if (!product) return;
+                const quantity = item.quantity || 1;
+                const price = Number(product.price?.amount || 0);
+                const compareAt = Number(
+                    product.compareAtPrice?.amount || price
+                );
+                totalBought += quantity;
+                if (compareAt > price) {
+                    const saved = (compareAt - price) * quantity;
+                    totalSaved += saved;
+                    discountedProducts.push({
+                        name: product.title,
+                        originalPrice: compareAt,
+                        discountedPrice: price,
+                        saved: +saved.toFixed(2),
+                    });
+                }
+            });
+        });
+        return {
+            totalBought,
+            totalSaved: +totalSaved.toFixed(2),
+            products: discountedProducts,
+        };
+    }, [orders]);
 
     useEffect(() => {
         const ready =
@@ -182,6 +230,7 @@ export function App() {
             shoppingStreak: streak,
             avgOrderValue,
             topCategory: "Fashion", // Could be derived from product data
+            moneySaved: purchaseSummary.totalSaved, // Use real value
         };
 
         // Instead of setting stats immediately, wait for OpenAI response
@@ -191,7 +240,7 @@ export function App() {
                 topOrderedVendors,
                 productsBought: totalProducts,
                 moneySpent: totalSpent,
-                totalSaved: avgOrderValue * 0.2 * totalOrders, // Estimated savings
+                totalSaved: purchaseSummary.totalSaved, // Use real value
                 topProducts,
             });
             setStats({
@@ -237,19 +286,28 @@ export function App() {
             setHasAnalyzed(true); // Set before calling to prevent race
             analyzeShoppingData();
         }
-        // Simulate analysis progress
-        const interval = setInterval(() => {
-            setProgress((prev) => {
-                if (prev >= 100) {
+    };
+
+    // Animate progress bar when in analyzing frame
+    useEffect(() => {
+        if (currentFrame === "analyzing") {
+            setProgress(0);
+            setIsAnalyzing(true);
+            let progressValue = 0;
+            const interval = setInterval(() => {
+                progressValue += 10;
+                setProgress(progressValue);
+                if (progressValue >= 100) {
                     clearInterval(interval);
                     setIsAnalyzing(false);
-                    nextFrame();
-                    return 100;
+                    setTimeout(() => {
+                        nextFrame();
+                    }, 400); // Short pause before next frame
                 }
-                return prev + 10;
-            });
-        }, 300);
-    };
+            }, 300);
+            return () => clearInterval(interval);
+        }
+    }, [currentFrame]);
 
     const captureAndShareToInstagram = async () => {
         if (!shareFrameRef.current) {
@@ -407,6 +465,9 @@ export function App() {
             case "totalSpent":
                 return <TotalSpentFrame amount={stats.totalSpent} />;
 
+            case "moneySaved":
+                return <MoneySavedFrame amount={stats.moneySaved || 0} />;
+
             case "ordersCount":
                 return <OrdersCountFrame count={stats.totalOrders} />;
 
@@ -538,30 +599,104 @@ const AnalyzingFrame = ({ progress }: { progress: number }) => (
     </div>
 );
 
+// Reusable animated emoji component
+const AnimatedEmojis = ({
+    emojis,
+}: {
+    emojis: Array<{
+        emoji: string;
+        top?: string;
+        bottom?: string;
+        left?: string;
+        right?: string;
+        size?: string;
+        delay?: string;
+        rotate?: string;
+        zIndex?: number;
+    }>;
+}) => (
+    <>
+        {emojis.map((e, i) => (
+            <div
+                key={i}
+                className={`absolute animate-float`}
+                style={{
+                    top: e.top,
+                    bottom: e.bottom,
+                    left: e.left,
+                    right: e.right,
+                    fontSize: e.size || "2rem",
+                    animationDelay: e.delay || "0s",
+                    transform: e.rotate ? `rotate(${e.rotate})` : undefined,
+                    zIndex: e.zIndex || 1,
+                    pointerEvents: "none",
+                    userSelect: "none",
+                }}
+            >
+                {e.emoji}
+            </div>
+        ))}
+    </>
+);
+
+// Add keyframes for floating animation
+// Add this to your global CSS (e.g., index.css):
+// @keyframes float {
+//   0% { transform: translateY(0) scale(1) rotate(0deg); }
+//   50% { transform: translateY(-20px) scale(1.1) rotate(5deg); }
+//   100% { transform: translateY(0) scale(1) rotate(0deg); }
+// }
+// .animate-float { animation: float 3s ease-in-out infinite; }
+
 // Total Spent Frame
 const TotalSpentFrame = ({ amount }: { amount: number }) => (
     <div className="h-full bg-gradient-to-br from-green-500 via-green-600 to-green-700 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
-        {/* Floating money emojis */}
-        <div className="absolute top-20 left-8 text-4xl animate-bounce">💰</div>
-        <div
-            className="absolute top-32 right-12 text-3xl animate-bounce"
-            style={{ animationDelay: "0.5s" }}
-        >
-            💳
-        </div>
-        <div
-            className="absolute bottom-32 left-12 text-4xl animate-bounce"
-            style={{ animationDelay: "1s" }}
-        >
-            🛒
-        </div>
-        <div
-            className="absolute bottom-20 right-8 text-3xl animate-bounce"
-            style={{ animationDelay: "1.5s" }}
-        >
-            💎
-        </div>
-
+        <AnimatedEmojis
+            emojis={[
+                {
+                    emoji: "💰",
+                    top: "8%",
+                    left: "6%",
+                    size: "3.5rem",
+                    delay: "0s",
+                },
+                {
+                    emoji: "💳",
+                    top: "18%",
+                    right: "8%",
+                    size: "2.2rem",
+                    delay: "0.4s",
+                },
+                {
+                    emoji: "🛒",
+                    bottom: "20%",
+                    left: "10%",
+                    size: "2.8rem",
+                    delay: "0.8s",
+                },
+                {
+                    emoji: "💎",
+                    bottom: "10%",
+                    right: "7%",
+                    size: "2.5rem",
+                    delay: "1.2s",
+                },
+                {
+                    emoji: "🤑",
+                    top: "50%",
+                    left: "2%",
+                    size: "2.1rem",
+                    delay: "1.6s",
+                },
+                {
+                    emoji: "💵",
+                    bottom: "8%",
+                    right: "20%",
+                    size: "2.7rem",
+                    delay: "2s",
+                },
+            ]}
+        />
         <div className="text-center space-y-8 z-10">
             <h2 className="text-2xl font-light opacity-90">You spent</h2>
             <div className="text-7xl font-bold">${amount.toFixed(0)}</div>
@@ -573,9 +708,115 @@ const TotalSpentFrame = ({ amount }: { amount: number }) => (
     </div>
 );
 
+// Money Saved Frame
+const MoneySavedFrame = ({ amount }: { amount: number }) => (
+    <div className="h-full bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
+        <AnimatedEmojis
+            emojis={[
+                {
+                    emoji: "🐷",
+                    top: "12%",
+                    left: "8%",
+                    size: "3.2rem",
+                    delay: "0s",
+                },
+                {
+                    emoji: "🪙",
+                    top: "22%",
+                    right: "10%",
+                    size: "2.5rem",
+                    delay: "0.5s",
+                },
+                {
+                    emoji: "💸",
+                    bottom: "18%",
+                    left: "12%",
+                    size: "2.7rem",
+                    delay: "1s",
+                },
+                {
+                    emoji: "🤑",
+                    bottom: "12%",
+                    right: "10%",
+                    size: "2.9rem",
+                    delay: "1.5s",
+                },
+                {
+                    emoji: "💵",
+                    top: "60%",
+                    right: "5%",
+                    size: "2.3rem",
+                    delay: "2s",
+                },
+                {
+                    emoji: "🎉",
+                    bottom: "8%",
+                    left: "20%",
+                    size: "2.6rem",
+                    delay: "2.5s",
+                },
+            ]}
+        />
+        <div className="text-center space-y-8 z-10">
+            <h2 className="text-2xl font-light opacity-90">You saved</h2>
+            <div className="text-7xl font-bold">${amount.toFixed(0)}</div>
+            <p className="text-xl opacity-80">this year on deals & discounts</p>
+            {amount > 200 && (
+                <div className="text-lg opacity-70">🎉 Smart shopper!</div>
+            )}
+        </div>
+    </div>
+);
+
 // Orders Count Frame
 const OrdersCountFrame = ({ count }: { count: number }) => (
-    <div className="h-full bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 flex flex-col items-center justify-center text-white p-8">
+    <div className="h-full bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
+        <AnimatedEmojis
+            emojis={[
+                {
+                    emoji: "📦",
+                    top: "10%",
+                    left: "7%",
+                    size: "2.7rem",
+                    delay: "0s",
+                },
+                {
+                    emoji: "🛍️",
+                    top: "20%",
+                    right: "8%",
+                    size: "2.3rem",
+                    delay: "0.5s",
+                },
+                {
+                    emoji: "🚚",
+                    bottom: "18%",
+                    left: "10%",
+                    size: "2.5rem",
+                    delay: "1s",
+                },
+                {
+                    emoji: "🎯",
+                    bottom: "10%",
+                    right: "12%",
+                    size: "2.8rem",
+                    delay: "1.5s",
+                },
+                {
+                    emoji: "📬",
+                    top: "60%",
+                    right: "5%",
+                    size: "2.1rem",
+                    delay: "2s",
+                },
+                {
+                    emoji: "🛒",
+                    bottom: "8%",
+                    left: "20%",
+                    size: "2.6rem",
+                    delay: "2.5s",
+                },
+            ]}
+        />
         <div className="text-center space-y-8">
             <h2 className="text-2xl font-light opacity-90">You placed</h2>
             <div className="text-8xl font-bold animate-pulse">{count}</div>
