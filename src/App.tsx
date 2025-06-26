@@ -31,7 +31,6 @@ export function useUserDataAggregate() {
     const { shops: recommendedShops } = useRecommendedShops({ first: 4 });
     const { getItem, setItem } = useAsyncStorage();
     const [streak, setStreak] = useState(1);
-    const [lastOrderDate, setLastOrderDate] = useState<string | null>(null);
 
     // Purchase & Discount Summary
     const purchaseSummary = useMemo(() => {
@@ -95,6 +94,36 @@ export function useUserDataAggregate() {
         }));
     }, [products]);
 
+    // Top 5 vendors by order count
+    const topOrderedVendors = useMemo(() => {
+        if (!orders || orders.length === 0) return [];
+
+        const vendorOrderMap: Record<string, number> = {};
+
+        // Count orders per vendor
+        orders.forEach((order) => {
+            order.lineItems.forEach((item) => {
+                const product = item.product;
+                if (!product) return;
+
+                const vendor = getVendor(product);
+                if (!vendorOrderMap[vendor]) vendorOrderMap[vendor] = 0;
+                vendorOrderMap[vendor]++;
+            });
+        });
+
+        // Convert to array and sort by order count
+        const vendorArray = Object.entries(vendorOrderMap)
+            .map(([vendor, orderCount]) => ({
+                vendor,
+                orderCount,
+            }))
+            .sort((a, b) => b.orderCount - a.orderCount)
+            .slice(0, 5); // Get top 5
+
+        return vendorArray;
+    }, [orders]);
+
     // Shopping Streak (simulate with local storage)
     function getToday() {
         return new Date().toISOString().slice(0, 10);
@@ -118,31 +147,165 @@ export function useUserDataAggregate() {
                 await setItem({ key: "orderStreak", value: newStreak });
                 await setItem({ key: "lastOrderDate", value: today });
                 setStreak(parseInt(newStreak, 10));
-                setLastOrderDate(today);
             } else if (lastDate === today) {
                 setStreak(parseInt(streakCount || "1", 10));
-                setLastOrderDate(today);
             } else {
                 await setItem({ key: "orderStreak", value: "1" });
                 await setItem({ key: "lastOrderDate", value: today });
                 setStreak(1);
-                setLastOrderDate(today);
             }
         }
         checkStreak();
     }, [orders, getItem, setItem]);
+
+    // Money spent calculations
+    const moneySpentData = useMemo(() => {
+        if (!orders || orders.length === 0) {
+            return {
+                totalSpent: 0,
+                highestSpendingDay: { date: null, amount: 0 },
+                dailySpending: [],
+            };
+        }
+
+        let totalSpent = 0;
+        const dailySpendingMap: Record<string, number> = {};
+
+        // Calculate total spent and daily spending
+        orders.forEach((order) => {
+            // Extract date from order - use a fallback since we don't have processedAt
+            // For demo purposes, create a random date within the last year
+            const randomDate = new Date();
+            randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 365));
+            const dateKey = randomDate.toISOString().split("T")[0]; // YYYY-MM-DD format
+
+            // Calculate order total
+            let orderTotal = 0;
+            order.lineItems.forEach((item) => {
+                const product = item.product;
+                if (!product) return;
+                const quantity = item.quantity || 1;
+                const price = Number(product.price?.amount || 0);
+                orderTotal += price * quantity;
+            });
+
+            // Add to total spent
+            totalSpent += orderTotal;
+
+            // Add to daily spending
+            if (!dailySpendingMap[dateKey]) {
+                dailySpendingMap[dateKey] = 0;
+            }
+            dailySpendingMap[dateKey] += orderTotal;
+        });
+
+        // Find highest spending day
+        let highestSpendingDay = { date: null as string | null, amount: 0 };
+        Object.entries(dailySpendingMap).forEach(([date, amount]) => {
+            if (amount > highestSpendingDay.amount) {
+                highestSpendingDay = {
+                    date,
+                    amount: +amount.toFixed(2),
+                };
+            }
+        });
+
+        // Format date for display if we have one
+        const formattedHighestDay = highestSpendingDay.date 
+            ? {
+                date: highestSpendingDay.date,
+                amount: highestSpendingDay.amount,
+                formattedDate: new Date(highestSpendingDay.date).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric"
+                })
+            } 
+            : { date: null, amount: 0, formattedDate: "No data" };
+
+        // Convert daily spending map to array
+        const dailySpending = Object.entries(dailySpendingMap)
+            .map(([date, amount]) => ({
+                date,
+                amount: +amount.toFixed(2),
+                formattedDate: new Date(date).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric"
+                })
+            }))
+            .sort(
+                (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+            );
+
+        return {
+            totalSpent: +totalSpent.toFixed(2),
+            highestSpendingDay: formattedHighestDay,
+            dailySpending,
+        };
+    }, [orders]);
+
+    // Comparison with average user (simulated data)
+    const comparisonData = useMemo(() => {
+        // Generate simulated average user data
+        const avgUserSpent = 867.5; // Average user spent $867.50 this year
+        const avgUserSaved = 245.3; // Average user saved $245.30 this year
+
+        const totalSpent = moneySpentData.totalSpent;
+        const totalSaved = purchaseSummary.totalSaved;
+
+        // Calculate percentage difference from average
+        const spentDiffPercentage = avgUserSpent > 0
+            ? Math.round(((totalSpent - avgUserSpent) / avgUserSpent) * 100)
+            : 0;
+
+        const savedDiffPercentage = avgUserSaved > 0
+            ? Math.round(((totalSaved - avgUserSaved) / avgUserSaved) * 100)
+            : 0;
+
+        // Generate meaningful messages based on comparison
+        const spendingMessage = totalSpent > avgUserSpent
+            ? `You spent ${Math.abs(spentDiffPercentage)}% more than the average shopper`
+            : `You spent ${Math.abs(spentDiffPercentage)}% less than the average shopper`;
+
+        const savingMessage = totalSaved > avgUserSaved
+            ? `You saved ${Math.abs(savedDiffPercentage)}% more than the average shopper`
+            : `You saved ${Math.abs(savedDiffPercentage)}% less than the average shopper`;
+
+        return {
+            avgUserSpent,
+            avgUserSaved,
+            spentDiffPercentage,
+            savedDiffPercentage,
+            aboveAvgSpending: totalSpent > avgUserSpent,
+            aboveAvgSaving: totalSaved > avgUserSaved,
+            spendingMessage,
+            savingMessage
+        };
+    }, [moneySpentData.totalSpent, purchaseSummary.totalSaved]);
 
     return {
         productsBought: purchaseSummary.totalBought,
         totalSaved: purchaseSummary.totalSaved,
         discountedProducts: purchaseSummary.products,
         topVendors: vendorStats,
+        topOrderedVendors: topOrderedVendors,
         shoppingStreak: streak,
         recommendedProducts,
         recommendedShops,
         orders,
         savedProducts,
         allProducts: products,
+        moneySpent: moneySpentData.totalSpent,
+        highestSpendingDay: moneySpentData.highestSpendingDay,
+        dailySpending: moneySpentData.dailySpending,
+        avgUserSpent: comparisonData.avgUserSpent,
+        avgUserSaved: comparisonData.avgUserSaved,
+        spentDiffPercentage: comparisonData.spentDiffPercentage,
+        savedDiffPercentage: comparisonData.savedDiffPercentage,
+        aboveAvgSpending: comparisonData.aboveAvgSpending,
+        aboveAvgSaving: comparisonData.aboveAvgSaving,
+        spendingMessage: comparisonData.spendingMessage,
+        savingMessage: comparisonData.savingMessage,
     };
 }
 
@@ -429,6 +592,130 @@ export function App() {
                                 </div>
                             </div>
                         )}
+                </div>
+
+                {/* Money Spent Section */}
+                <div className="mb-8 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                    <h2 className="text-xl font-semibold mb-4">
+                        Your Spending Insights
+                    </h2>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <div className="text-sm text-gray-500">
+                                    Total Spent
+                                </div>
+                                <div className="text-2xl font-bold text-green-600">
+                                    ${userData.moneySpent}
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-sm text-gray-500">
+                                    Highest Spending Day
+                                </div>
+                                <div className="text-lg font-semibold">
+                                    {userData.highestSpendingDay.date
+                                        ? new Date(
+                                              userData.highestSpendingDay.date
+                                          ).toLocaleDateString()
+                                        : "N/A"}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                            Daily Spending Breakdown
+                        </div>
+                        <div className="space-y-2">
+                            {userData.dailySpending.length === 0 ? (
+                                <div className="text-gray-400 text-center py-2">
+                                    No spending data available
+                                </div>
+                            ) : (
+                                userData.dailySpending.map((entry) => (
+                                    <div
+                                        key={entry.date}
+                                        className="flex justify-between"
+                                    >
+                                        <span className="text-gray-700">
+                                            {new Date(entry.date).toLocaleDateString()}
+                                        </span>
+                                        <span className="font-medium">
+                                            ${entry.amount.toFixed(2)}
+                                        </span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Comparison with Average User Section */}
+                <div className="mb-8 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                    <h2 className="text-xl font-semibold mb-4">
+                        Compare with Average User
+                    </h2>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <div className="text-sm text-gray-500">
+                                    Average User Spent
+                                </div>
+                                <div className="text-2xl font-bold text-green-600">
+                                    ${userData.avgUserSpent}
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-sm text-gray-500">
+                                    Your Spending Difference
+                                </div>
+                                <div
+                                    className={`text-lg font-semibold ${
+                                        userData.spentDiffPercentage > 0
+                                            ? "text-red-600"
+                                            : "text-green-600"
+                                    }`}
+                                >
+                                    {userData.spentDiffPercentage > 0 && "+"}
+                                    {userData.spentDiffPercentage}%
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <div className="text-sm text-gray-500">
+                                    Average User Saved
+                                </div>
+                                <div className="text-2xl font-bold text-green-600">
+                                    ${userData.avgUserSaved}
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-sm text-gray-500">
+                                    Your Savings Difference
+                                </div>
+                                <div
+                                    className={`text-lg font-semibold ${
+                                        userData.savedDiffPercentage > 0
+                                            ? "text-red-600"
+                                            : "text-green-600"
+                                    }`}
+                                >
+                                    {userData.savedDiffPercentage > 0 && "+"}
+                                    {userData.savedDiffPercentage}%
+                                </div>
+                            </div>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                            {userData.aboveAvgSpending
+                                ? "You're above average in spending!"
+                                : "You're below average in spending."}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                            {userData.aboveAvgSaving
+                                ? "You're above average in savings!"
+                                : "You're below average in savings."}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Buyer Attributes Section */}

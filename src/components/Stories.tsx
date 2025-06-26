@@ -25,6 +25,36 @@ const stories = [
         emoji: "📊",
         duration: 5000,
     },
+    {
+        id: 4,
+        text: "Your Top 5 Favorite Shops!",
+        emoji: "🏆",
+        duration: 5000,
+    },
+    {
+        id: 5,
+        text: "Show Me The Money 💸",
+        emoji: "💰",
+        duration: 5000,
+    },
+    {
+        id: 6,
+        text: "Your Biggest Shopping Day",
+        emoji: "📆",
+        duration: 5000,
+    },
+    {
+        id: 7,
+        text: "Money Saved This Year",
+        emoji: "💵",
+        duration: 5000,
+    },
+    {
+        id: 8,
+        text: "How You Compare",
+        emoji: "📈",
+        duration: 5000,
+    },
 ];
 
 // Food and fun emojis for floating animations (from newStories.tsx)
@@ -57,6 +87,11 @@ const emojiMap = {
     totalSaved: ["💰", "💵", "💸", "🤑", "💲"],
     shoppingStreak: ["🔥", "📆", "⚡", "🏆", "✅"],
     topVendor: ["🏪", "👑", "🥇", "⭐", "🌟"],
+    topVendors: ["🥇", "🥈", "🥉", "🏅", "🎖️"],
+    moneySpent: ["💰", "💸", "💵", "💴", "💶"],
+    shoppingDay: ["📅", "📆", "🗓️", "⏰", "⌚"],
+    moneySaved: ["💲", "💹", "📈", "🔖", "🏷️"],
+    comparison: ["📊", "📈", "📉", "🔍", "🧮"],
 };
 
 // Helper functions from newStories.tsx
@@ -549,6 +584,301 @@ const Stories = () => {
                                             </div>
                                         </motion.div>
                                     )}
+                            </div>
+                        )}
+
+                        {currentStoryIndex === 3 && (
+                            <div className="user-stats-wrapper top-vendors-wrapper">
+                                <motion.div
+                                    className="stat-card vendor-card top-vendors-title"
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{
+                                        opacity: showStats ? 1 : 0,
+                                        scale: showStats ? 1 : 0.8,
+                                    }}
+                                    transition={{ duration: 0.5 }}
+                                >
+                                    <h2 className="top-vendors-heading">
+                                        Your Most Visited Shops
+                                    </h2>
+                                </motion.div>
+
+                                {userData.topOrderedVendors &&
+                                    userData.topOrderedVendors.map(
+                                        (vendor, index) => (
+                                            <motion.div
+                                                key={vendor.vendor}
+                                                className="stat-card vendor-rank-card"
+                                                initial={{
+                                                    opacity: 0,
+                                                    scale: 0.8,
+                                                    x: -50,
+                                                }}
+                                                animate={{
+                                                    opacity: showStats ? 1 : 0,
+                                                    scale: showStats ? 1 : 0.8,
+                                                    x: showStats ? 0 : -50,
+                                                }}
+                                                transition={{
+                                                    duration: 0.5,
+                                                    delay: 0.2 + index * 0.15,
+                                                }}
+                                            >
+                                                {renderFloatingEmojis([
+                                                    emojiMap.topVendors[index],
+                                                ])}
+                                                <div className="vendor-rank">
+                                                    <div className="vendor-rank-position">
+                                                        <span className="rank-number">
+                                                            {index + 1}
+                                                        </span>
+                                                    </div>
+                                                    <div className="vendor-rank-details">
+                                                        <motion.span
+                                                            className="vendor-rank-name"
+                                                            initial={{
+                                                                opacity: 0,
+                                                            }}
+                                                            animate={{
+                                                                opacity:
+                                                                    showStats
+                                                                        ? 1
+                                                                        : 0,
+                                                            }}
+                                                            transition={{
+                                                                duration: 0.3,
+                                                                delay:
+                                                                    0.3 +
+                                                                    index *
+                                                                        0.15,
+                                                            }}
+                                                        >
+                                                            {vendor.vendor}
+                                                        </motion.span>
+                                                        <span className="vendor-rank-count">
+                                                            {vendor.orderCount}{" "}
+                                                            order
+                                                            {vendor.orderCount !==
+                                                            1
+                                                                ? "s"
+                                                                : ""}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )
+                                    )}
+                            </div>
+                        )}
+
+                        {/* Money Spent Story */}
+                        {currentStoryIndex === 4 && (
+                            <div className="user-stats-wrapper money-story-wrapper">
+                                <motion.div
+                                    className="stat-card money-card"
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{
+                                        opacity: showStats ? 1 : 0,
+                                        scale: showStats ? 1 : 0.8,
+                                    }}
+                                    transition={{ duration: 0.7 }}
+                                >
+                                    {renderFloatingEmojis(emojiMap.moneySpent)}
+                                    <div className="money-stat">
+                                        <div className="money-label">You've spent</div>
+                                        <motion.div
+                                            className="money-value"
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{
+                                                opacity: showStats ? 1 : 0,
+                                                y: showStats ? 0 : 20,
+                                            }}
+                                            transition={{ duration: 0.5, delay: 1 }}
+                                        >
+                                            ${userData.moneySpent}
+                                        </motion.div>
+                                        <div className="money-description">
+                                            on shopping this year
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
+
+                        {/* Highest Spending Day Story */}
+                        {currentStoryIndex === 5 && (
+                            <div className="user-stats-wrapper money-story-wrapper">
+                                <motion.div
+                                    className="stat-card money-card"
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{
+                                        opacity: showStats ? 1 : 0,
+                                        scale: showStats ? 1 : 0.8,
+                                    }}
+                                    transition={{ duration: 0.7 }}
+                                >
+                                    {renderFloatingEmojis(emojiMap.shoppingDay)}
+                                    <div className="money-stat">
+                                        <div className="money-label">
+                                            Your biggest shopping day
+                                        </div>
+                                        <motion.div
+                                            className="date-value"
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{
+                                                opacity: showStats ? 1 : 0,
+                                                y: showStats ? 0 : 20,
+                                            }}
+                                            transition={{ duration: 0.5, delay: 1 }}
+                                        >
+                                            {userData.highestSpendingDay.date
+                                                ? new Date(userData.highestSpendingDay.date).toLocaleDateString("en-US", {
+                                                      month: "long",
+                                                      day: "numeric",
+                                                      year: "numeric",
+                                                  })
+                                                : "No shopping days yet"}
+                                        </motion.div>
+                                        <motion.div
+                                            className="money-highlight"
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{
+                                                opacity: showStats ? 1 : 0,
+                                                y: showStats ? 0 : 20,
+                                            }}
+                                            transition={{ duration: 0.5, delay: 1.3 }}
+                                        >
+                                            ${userData.highestSpendingDay.amount}
+                                        </motion.div>
+                                        <div className="money-description">
+                                            was spent on this day
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
+
+                        {/* Money Saved Story */}
+                        {currentStoryIndex === 6 && (
+                            <div className="user-stats-wrapper money-story-wrapper">
+                                <motion.div
+                                    className="stat-card money-card saved-card"
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{
+                                        opacity: showStats ? 1 : 0,
+                                        scale: showStats ? 1 : 0.8,
+                                    }}
+                                    transition={{ duration: 0.7 }}
+                                >
+                                    {renderFloatingEmojis(emojiMap.moneySaved)}
+                                    <div className="money-stat">
+                                        <div className="money-label">You've saved</div>
+                                        <motion.div
+                                            className="money-value saved-value"
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{
+                                                opacity: showStats ? 1 : 0,
+                                                y: showStats ? 0 : 20,
+                                            }}
+                                            transition={{ duration: 0.5, delay: 1 }}
+                                        >
+                                            ${userData.totalSaved}
+                                        </motion.div>
+                                        <div className="money-description">
+                                            by shopping smart this year
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
+
+                        {/* Comparison Story */}
+                        {currentStoryIndex === 7 && (
+                            <div className="user-stats-wrapper money-story-wrapper">
+                                <motion.div
+                                    className="stat-card comparison-card"
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{
+                                        opacity: showStats ? 1 : 0,
+                                        scale: showStats ? 1 : 0.8,
+                                    }}
+                                    transition={{ duration: 0.5 }}
+                                >
+                                    {renderFloatingEmojis(emojiMap.comparison)}
+                                    <div className="comparison-title">How You Compare</div>
+                                </motion.div>
+
+                                <motion.div
+                                    className="stat-card comparison-detail-card"
+                                    initial={{ opacity: 0, x: -50 }}
+                                    animate={{
+                                        opacity: showStats ? 1 : 0,
+                                        x: showStats ? 0 : -50,
+                                    }}
+                                    transition={{ duration: 0.5, delay: 0.3 }}
+                                >
+                                    {renderFloatingEmojis(emojiMap.moneySpent.slice(0, 2))}
+                                    <div className="comparison-stat">
+                                        <div className="comparison-label">Spending</div>
+                                        <motion.div
+                                            className="comparison-value"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: showStats ? 1 : 0 }}
+                                            transition={{ duration: 0.3, delay: 1 }}
+                                        >
+                                            ${userData.moneySpent}
+                                        </motion.div>
+                                        <div className="comparison-avg">
+                                            Average user: ${userData.avgUserSpent}
+                                        </div>
+                                        <div
+                                            className={`comparison-diff ${
+                                                userData.aboveAvgSpending
+                                                    ? "above"
+                                                    : "below"
+                                            }`}
+                                        >
+                                            {userData.aboveAvgSpending ? "+" : ""}
+                                            {userData.spentDiffPercentage}%
+                                        </div>
+                                    </div>
+                                </motion.div>
+
+                                <motion.div
+                                    className="stat-card comparison-detail-card"
+                                    initial={{ opacity: 0, x: 50 }}
+                                    animate={{
+                                        opacity: showStats ? 1 : 0,
+                                        x: showStats ? 0 : 50,
+                                    }}
+                                    transition={{ duration: 0.5, delay: 0.5 }}
+                                >
+                                    {renderFloatingEmojis(emojiMap.moneySaved.slice(0, 2))}
+                                    <div className="comparison-stat">
+                                        <div className="comparison-label">Savings</div>
+                                        <motion.div
+                                            className="comparison-value"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: showStats ? 1 : 0 }}
+                                            transition={{ duration: 0.3, delay: 1.2 }}
+                                        >
+                                            ${userData.totalSaved}
+                                        </motion.div>
+                                        <div className="comparison-avg">
+                                            Average user: ${userData.avgUserSaved}
+                                        </div>
+                                        <div
+                                            className={`comparison-diff ${
+                                                userData.aboveAvgSaving
+                                                    ? "above"
+                                                    : "below"
+                                            }`}
+                                        >
+                                            {userData.aboveAvgSaving ? "+" : ""}
+                                            {userData.savedDiffPercentage}%
+                                        </div>
+                                    </div>
+                                </motion.div>
                             </div>
                         )}
                     </div>
