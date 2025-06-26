@@ -91,7 +91,7 @@ export function useUserDataAggregate() {
         return Object.entries(vendorMap).map(([vendor, count]) => ({
             vendor,
             count: count as number,
-            topPercent: Math.floor(Math.random() * 100) + 1, // 1-100%
+            topPercent: Math.floor(Math.random() * 20) + 80, // 1-100%
         }));
     }, [products]);
 
