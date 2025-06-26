@@ -19,7 +19,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { generateShoppingPersona } from "./services/openai";
 
 function getVendor(product: any) {
-    return product.vendor || "Mock Vendor " + ((product.id % 3) + 1);
+    return product.vendor || "Shop Vendor " + ((product.id % 3) + 1);
 }
 
 export function useUserDataAggregate() {
