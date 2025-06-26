@@ -554,12 +554,48 @@ const WelcomeFrame = ({ onStart }: { onStart: () => void }) => (
     <div className="h-full bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
         <AnimatedEmojis
             emojis={[
-                { emoji: "🛍️", top: "8%", left: "6%", size: "4.5rem", delay: "0s" },
-                { emoji: "✨", top: "18%", right: "8%", size: "2.5rem", delay: "0.4s" },
-                { emoji: "🎉", bottom: "20%", left: "10%", size: "3.8rem", delay: "0.8s" },
-                { emoji: "💙", bottom: "10%", right: "7%", size: "2.2rem", delay: "1.2s" },
-                { emoji: "🛒", top: "50%", left: "2%", size: "2.7rem", delay: "1.6s" },
-                { emoji: "👟", bottom: "8%", right: "20%", size: "3.2rem", delay: "2s" },
+                {
+                    emoji: "🛍️",
+                    top: "8%",
+                    left: "6%",
+                    size: "4.5rem",
+                    delay: "0s",
+                },
+                {
+                    emoji: "✨",
+                    top: "18%",
+                    right: "8%",
+                    size: "2.5rem",
+                    delay: "0.4s",
+                },
+                {
+                    emoji: "🎉",
+                    bottom: "20%",
+                    left: "10%",
+                    size: "3.8rem",
+                    delay: "0.8s",
+                },
+                {
+                    emoji: "💙",
+                    bottom: "10%",
+                    right: "7%",
+                    size: "2.2rem",
+                    delay: "1.2s",
+                },
+                {
+                    emoji: "🛒",
+                    top: "50%",
+                    left: "2%",
+                    size: "2.7rem",
+                    delay: "1.6s",
+                },
+                {
+                    emoji: "👟",
+                    bottom: "8%",
+                    right: "20%",
+                    size: "3.2rem",
+                    delay: "2s",
+                },
             ]}
         />
         <div className="text-center space-y-8">
@@ -592,12 +628,48 @@ const AnalyzingFrame = ({ progress }: { progress: number }) => (
     <div className="h-full bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
         <AnimatedEmojis
             emojis={[
-                { emoji: "🔎", top: "10%", left: "8%", size: "4rem", delay: "0s" },
-                { emoji: "🧠", top: "20%", right: "10%", size: "2.7rem", delay: "0.5s" },
-                { emoji: "📊", bottom: "18%", left: "12%", size: "3.2rem", delay: "1s" },
-                { emoji: "✨", bottom: "12%", right: "10%", size: "2.5rem", delay: "1.5s" },
-                { emoji: "⏳", top: "60%", right: "5%", size: "2.9rem", delay: "2s" },
-                { emoji: "🤖", bottom: "8%", left: "20%", size: "3.5rem", delay: "2.5s" },
+                {
+                    emoji: "🔎",
+                    top: "10%",
+                    left: "8%",
+                    size: "4rem",
+                    delay: "0s",
+                },
+                {
+                    emoji: "🧠",
+                    top: "20%",
+                    right: "10%",
+                    size: "2.7rem",
+                    delay: "0.5s",
+                },
+                {
+                    emoji: "📊",
+                    bottom: "18%",
+                    left: "12%",
+                    size: "3.2rem",
+                    delay: "1s",
+                },
+                {
+                    emoji: "✨",
+                    bottom: "12%",
+                    right: "10%",
+                    size: "2.5rem",
+                    delay: "1.5s",
+                },
+                {
+                    emoji: "⏳",
+                    top: "60%",
+                    right: "5%",
+                    size: "2.9rem",
+                    delay: "2s",
+                },
+                {
+                    emoji: "🤖",
+                    bottom: "8%",
+                    left: "20%",
+                    size: "3.5rem",
+                    delay: "2.5s",
+                },
             ]}
         />
         <div className="text-center space-y-8">
@@ -857,12 +929,48 @@ const FavoriteShopFrame = ({ shop }: { shop?: string }) => (
     <div className="h-full bg-gradient-to-br from-pink-500 via-pink-600 to-pink-700 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
         <AnimatedEmojis
             emojis={[
-                { emoji: "🏪", top: "10%", left: "8%", size: "4.2rem", delay: "0s" },
-                { emoji: "🛍️", top: "20%", right: "10%", size: "2.8rem", delay: "0.5s" },
-                { emoji: "💖", bottom: "18%", left: "12%", size: "3.5rem", delay: "1s" },
-                { emoji: "🧁", bottom: "12%", right: "10%", size: "2.3rem", delay: "1.5s" },
-                { emoji: "🎀", top: "60%", right: "5%", size: "2.7rem", delay: "2s" },
-                { emoji: "🛒", bottom: "8%", left: "20%", size: "3.1rem", delay: "2.5s" },
+                {
+                    emoji: "🏪",
+                    top: "10%",
+                    left: "8%",
+                    size: "4.2rem",
+                    delay: "0s",
+                },
+                {
+                    emoji: "🛍️",
+                    top: "20%",
+                    right: "10%",
+                    size: "2.8rem",
+                    delay: "0.5s",
+                },
+                {
+                    emoji: "💖",
+                    bottom: "18%",
+                    left: "12%",
+                    size: "3.5rem",
+                    delay: "1s",
+                },
+                {
+                    emoji: "🧁",
+                    bottom: "12%",
+                    right: "10%",
+                    size: "2.3rem",
+                    delay: "1.5s",
+                },
+                {
+                    emoji: "🎀",
+                    top: "60%",
+                    right: "5%",
+                    size: "2.7rem",
+                    delay: "2s",
+                },
+                {
+                    emoji: "🛒",
+                    bottom: "8%",
+                    left: "20%",
+                    size: "3.1rem",
+                    delay: "2.5s",
+                },
             ]}
         />
         <div className="text-center space-y-8">
@@ -883,12 +991,48 @@ const TopProductFrame = ({ product }: { product?: string }) => (
     <div className="h-full bg-gradient-to-br from-indigo-500 via-indigo-600 to-indigo-700 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
         <AnimatedEmojis
             emojis={[
-                { emoji: "⭐", top: "10%", left: "8%", size: "4.2rem", delay: "0s" },
-                { emoji: "👟", top: "20%", right: "10%", size: "2.8rem", delay: "0.5s" },
-                { emoji: "🧢", bottom: "18%", left: "12%", size: "3.5rem", delay: "1s" },
-                { emoji: "👗", bottom: "12%", right: "10%", size: "2.3rem", delay: "1.5s" },
-                { emoji: "👜", top: "60%", right: "5%", size: "2.7rem", delay: "2s" },
-                { emoji: "🎒", bottom: "8%", left: "20%", size: "3.1rem", delay: "2.5s" },
+                {
+                    emoji: "⭐",
+                    top: "10%",
+                    left: "8%",
+                    size: "4.2rem",
+                    delay: "0s",
+                },
+                {
+                    emoji: "👟",
+                    top: "20%",
+                    right: "10%",
+                    size: "2.8rem",
+                    delay: "0.5s",
+                },
+                {
+                    emoji: "🧢",
+                    bottom: "18%",
+                    left: "12%",
+                    size: "3.5rem",
+                    delay: "1s",
+                },
+                {
+                    emoji: "👗",
+                    bottom: "12%",
+                    right: "10%",
+                    size: "2.3rem",
+                    delay: "1.5s",
+                },
+                {
+                    emoji: "👜",
+                    top: "60%",
+                    right: "5%",
+                    size: "2.7rem",
+                    delay: "2s",
+                },
+                {
+                    emoji: "🎒",
+                    bottom: "8%",
+                    left: "20%",
+                    size: "3.1rem",
+                    delay: "2.5s",
+                },
             ]}
         />
         <div className="text-center space-y-8">
@@ -909,12 +1053,48 @@ const ShoppingStyleFrame = ({ stats }: { stats: ShoppingStats }) => (
     <div className="h-full bg-gradient-to-br from-teal-500 via-teal-600 to-teal-700 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
         <AnimatedEmojis
             emojis={[
-                { emoji: "🎨", top: "10%", left: "8%", size: "4.2rem", delay: "0s" },
-                { emoji: "🧥", top: "20%", right: "10%", size: "2.8rem", delay: "0.5s" },
-                { emoji: "👖", bottom: "18%", left: "12%", size: "3.5rem", delay: "1s" },
-                { emoji: "👟", bottom: "12%", right: "10%", size: "2.3rem", delay: "1.5s" },
-                { emoji: "🕶️", top: "60%", right: "5%", size: "2.7rem", delay: "2s" },
-                { emoji: "🧢", bottom: "8%", left: "20%", size: "3.1rem", delay: "2.5s" },
+                {
+                    emoji: "🎨",
+                    top: "10%",
+                    left: "8%",
+                    size: "4.2rem",
+                    delay: "0s",
+                },
+                {
+                    emoji: "🧥",
+                    top: "20%",
+                    right: "10%",
+                    size: "2.8rem",
+                    delay: "0.5s",
+                },
+                {
+                    emoji: "👖",
+                    bottom: "18%",
+                    left: "12%",
+                    size: "3.5rem",
+                    delay: "1s",
+                },
+                {
+                    emoji: "👟",
+                    bottom: "12%",
+                    right: "10%",
+                    size: "2.3rem",
+                    delay: "1.5s",
+                },
+                {
+                    emoji: "🕶️",
+                    top: "60%",
+                    right: "5%",
+                    size: "2.7rem",
+                    delay: "2s",
+                },
+                {
+                    emoji: "🧢",
+                    bottom: "8%",
+                    left: "20%",
+                    size: "3.1rem",
+                    delay: "2.5s",
+                },
             ]}
         />
         <div className="text-center space-y-8">
@@ -943,12 +1123,48 @@ const YearInNumbersFrame = ({ stats }: { stats: ShoppingStats }) => (
     <div className="h-full bg-gradient-to-br from-red-500 via-red-600 to-red-700 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
         <AnimatedEmojis
             emojis={[
-                { emoji: "🔢", top: "10%", left: "8%", size: "4.2rem", delay: "0s" },
-                { emoji: "📦", top: "20%", right: "10%", size: "2.8rem", delay: "0.5s" },
-                { emoji: "🛒", bottom: "18%", left: "12%", size: "3.5rem", delay: "1s" },
-                { emoji: "🏬", bottom: "12%", right: "10%", size: "2.3rem", delay: "1.5s" },
-                { emoji: "🗓️", top: "60%", right: "5%", size: "2.7rem", delay: "2s" },
-                { emoji: "💯", bottom: "8%", left: "20%", size: "3.1rem", delay: "2.5s" },
+                {
+                    emoji: "🔢",
+                    top: "10%",
+                    left: "8%",
+                    size: "4.2rem",
+                    delay: "0s",
+                },
+                {
+                    emoji: "📦",
+                    top: "20%",
+                    right: "10%",
+                    size: "2.8rem",
+                    delay: "0.5s",
+                },
+                {
+                    emoji: "🛒",
+                    bottom: "18%",
+                    left: "12%",
+                    size: "3.5rem",
+                    delay: "1s",
+                },
+                {
+                    emoji: "🏬",
+                    bottom: "12%",
+                    right: "10%",
+                    size: "2.3rem",
+                    delay: "1.5s",
+                },
+                {
+                    emoji: "🗓️",
+                    top: "60%",
+                    right: "5%",
+                    size: "2.7rem",
+                    delay: "2s",
+                },
+                {
+                    emoji: "💯",
+                    bottom: "8%",
+                    left: "20%",
+                    size: "3.1rem",
+                    delay: "2.5s",
+                },
             ]}
         />
         <div className="text-center space-y-6">
@@ -994,12 +1210,48 @@ const PersonalityFrame = ({
     <div className="h-full bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
         <AnimatedEmojis
             emojis={[
-                { emoji: "✨", top: "10%", left: "8%", size: "4.2rem", delay: "0s" },
-                { emoji: "🧑‍🎤", top: "20%", right: "10%", size: "2.8rem", delay: "0.5s" },
-                { emoji: "🦸‍♂️", bottom: "18%", left: "12%", size: "3.5rem", delay: "1s" },
-                { emoji: "🦄", bottom: "12%", right: "10%", size: "2.3rem", delay: "1.5s" },
-                { emoji: "💡", top: "60%", right: "5%", size: "2.7rem", delay: "2s" },
-                { emoji: "🎭", bottom: "8%", left: "20%", size: "3.1rem", delay: "2.5s" },
+                {
+                    emoji: "✨",
+                    top: "10%",
+                    left: "8%",
+                    size: "4.2rem",
+                    delay: "0s",
+                },
+                {
+                    emoji: "🧑‍🎤",
+                    top: "20%",
+                    right: "10%",
+                    size: "2.8rem",
+                    delay: "0.5s",
+                },
+                {
+                    emoji: "🦸‍♂️",
+                    bottom: "18%",
+                    left: "12%",
+                    size: "3.5rem",
+                    delay: "1s",
+                },
+                {
+                    emoji: "🦄",
+                    bottom: "12%",
+                    right: "10%",
+                    size: "2.3rem",
+                    delay: "1.5s",
+                },
+                {
+                    emoji: "💡",
+                    top: "60%",
+                    right: "5%",
+                    size: "2.7rem",
+                    delay: "2s",
+                },
+                {
+                    emoji: "🎭",
+                    bottom: "8%",
+                    left: "20%",
+                    size: "3.1rem",
+                    delay: "2.5s",
+                },
             ]}
         />
         <div className="text-center space-y-8">
@@ -1050,16 +1302,7 @@ const ShareFrame = ({
     personaError: string | null;
 }) => (
     <div className="h-full bg-gradient-to-br from-pink-600 via-purple-600 to-indigo-600 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
-        <AnimatedEmojis
-            emojis={[
-                { emoji: "🎉", top: "10%", left: "8%", size: "4.2rem", delay: "0s" },
-                { emoji: "📸", top: "20%", right: "10%", size: "2.8rem", delay: "0.5s" },
-                { emoji: "🔗", bottom: "18%", left: "12%", size: "3.5rem", delay: "1s" },
-                { emoji: "💬", bottom: "12%", right: "10%", size: "2.3rem", delay: "1.5s" },
-                { emoji: "💖", top: "60%", right: "5%", size: "2.7rem", delay: "2s" },
-                { emoji: "🛍️", bottom: "8%", left: "20%", size: "3.1rem", delay: "2.5s" },
-            ]}
-        />
+        {/* No AnimatedEmojis here, share screen is clean */}
         <div className="text-center space-y-8">
             <div className="text-6xl mb-4">🎉</div>
             <h2 className="text-3xl font-bold">
