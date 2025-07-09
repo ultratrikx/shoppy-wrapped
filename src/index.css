@@ -14,106 +14,35 @@
     }
 }
 
+@keyframes rainfall {
+    0% {
+        transform: translateY(-20vh) rotate(var(--rotation));
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0.3;
+    }
+
+    80% {
+        opacity: 0.3;
+    }
+
+    100% {
+        transform: translateY(120vh) rotate(var(--rotation));
+        opacity: 0;
+    }
+}
+
 .animate-float {
     animation: float 3s ease-in-out infinite;
 }
 
-@keyframes rainfall {
-    0% {
-        transform: translateY(-100vh) rotate(0deg);
-        opacity: 0;
-    }
-
-    10% {
-        opacity: 1;
-    }
-
-    90% {
-        opacity: 1;
-    }
-
-    100% {
-        transform: translateY(100vh) rotate(360deg);
-        opacity: 0;
-    }
-}
-
 .animate-rainfall {
-    animation: rainfall linear infinite;
     position: absolute;
-    pointer-events: none;
-}
-
-.animate-rainfall:nth-child(1) {
-    animation-duration: 4s;
-    animation-delay: 0s;
-    left: 10%;
-}
-
-.animate-rainfall:nth-child(2) {
-    animation-duration: 5s;
-    animation-delay: 1s;
-    left: 20%;
-}
-
-.animate-rainfall:nth-child(3) {
-    animation-duration: 3.5s;
-    animation-delay: 2s;
-    left: 30%;
-}
-
-.animate-rainfall:nth-child(4) {
-    animation-duration: 4.5s;
-    animation-delay: 0.5s;
-    left: 40%;
-}
-
-.animate-rainfall:nth-child(5) {
-    animation-duration: 6s;
-    animation-delay: 1.5s;
-    left: 50%;
-}
-
-.animate-rainfall:nth-child(6) {
-    animation-duration: 3s;
-    animation-delay: 2.5s;
-    left: 60%;
-}
-
-.animate-rainfall:nth-child(7) {
-    animation-duration: 5.5s;
-    animation-delay: 0.8s;
-    left: 70%;
-}
-
-.animate-rainfall:nth-child(8) {
-    animation-duration: 4.2s;
-    animation-delay: 1.8s;
-    left: 80%;
-}
-
-.animate-rainfall:nth-child(9) {
-    animation-duration: 3.8s;
-    animation-delay: 2.2s;
-    left: 90%;
-}
-
-.animate-rainfall:nth-child(10) {
-    animation-duration: 5.2s;
-    animation-delay: 0.3s;
-    left: 5%;
-}
-
-.animate-rainfall:nth-child(11) {
-    animation-duration: 4.8s;
-    animation-delay: 1.3s;
-    left: 15%;
-}
-
-.animate-rainfall:nth-child(12) {
-    animation-duration: 3.2s;
-    animation-delay: 2.8s;
-    left: 85%;
+    animation: rainfall linear infinite;
+    will-change: transform;
+    --rotation: 0deg;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -131,34 +60,36 @@
 
 /* Fade in animation */
 @keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .animate-fade-in {
-  animation: fade-in 0.5s ease-out;
+    animation: fade-in 0.5s ease-out;
 }
 
 /* Slide up animation */
 @keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(30px) scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .animate-slide-up {
-  animation: slide-up 0.6s ease-out both;
+    animation: slide-up 0.6s ease-out both;
 }
 
 /* Card flip animation styles */
@@ -186,4 +117,14 @@
 /* Add perspective to parent containers */
 .game-card-container {
     perspective: 1000px;
+}
+
+/* Product image container styles */
+.top-product-image {
+    width: 100%;
+    height: auto;
+    max-width: 200px;
+    margin: 0 auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
