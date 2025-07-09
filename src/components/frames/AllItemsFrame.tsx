@@ -41,152 +41,172 @@ interface Card {
     image?: string;
     isFlipped: boolean;
     isMatched: boolean;
-    emoji: string; // Fallback emoji
 }
 
 interface FlippedCard extends Card {
     index: number;
 }
 
-// Fallback emojis for different product types
-const productEmojis = ["👕", "👟", "👜", "🧢", "👗", "🎒", "👔", "🧣"];
-
 export const AllItemsFrame = ({ items }: AllItemsFrameProps) => {
     const [cards, setCards] = useState<Card[]>([]);
-    const [flippedCards, setFlippedCards] = useState<FlippedCard[]>([]);
+    const [flippedCards, setFlippedCards] = useState<Array<Card & { index: number }>>([]);
     const [isGameComplete, setIsGameComplete] = useState(false);
     const [matches, setMatches] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
-    const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+    const [mediaLoaded, setMediaLoaded] = useState(false);
+    
+    // Extract only the IDs we need for the game (max 4 unique products)
+    const uniqueProductIds = Array.from(new Set(items.map(item => item.id)))
+        .slice(0, 4);
+    
+    // Get media specifically for the game products
+    const { media: allProductMedia, loading: mediaLoading } = useProductMedia({
+        id: uniqueProductIds.join(","),
+        skip: uniqueProductIds.length === 0,
+        first: 1,
+    });
     
     // Storage for caching images
     const { getItem, setItem } = useAsyncStorage();
     
-    // Only fetch media for selected items
-    const { media: productMedia } = useProductMedia({
-        id: selectedItemIds.join(","),
-        skip: selectedItemIds.length === 0,
-        first: 1
-    });
-
-    // Load image from cache or fetch it
-    const getProductImage = useCallback(async (productId: string) => {
+    // Cache the product image
+    const cacheProductImage = useCallback(async (productId: string, imageUrl: string) => {
         try {
-            // Try to get from cache first
-            const cachedImage = await getItem({ key: `product_img_${productId}` });
-            if (cachedImage) {
-                return cachedImage;
-            }
-            
-            // If not in cache, return null and let the product media hook handle it
-            return null;
+            await setItem({ key: `product_img_${productId}`, value: imageUrl });
+            return imageUrl;
+        } catch (error) {
+            console.error("Error caching image:", error);
+            return imageUrl;
+        }
+    }, [setItem]);
+
+    // Get cached image
+    const getCachedImage = useCallback(async (productId: string) => {
+        try {
+            return await getItem({ key: `product_img_${productId}` });
         } catch (error) {
             console.error("Error getting cached image:", error);
             return null;
         }
     }, [getItem]);
 
-    // Save image to cache
-    const cacheProductImage = useCallback(async (productId: string, imageUrl: string) => {
-        try {
-            await setItem({ key: `product_img_${productId}`, value: imageUrl });
-        } catch (error) {
-            console.error("Error caching image:", error);
+    // Extract image URL from media with improved matching logic
+    const getImageFromMedia = useCallback((productId: string) => {
+        if (!allProductMedia || !productId) return undefined;
+        
+        // Try to find matching media for this product
+        const media = allProductMedia.find(m => {
+            if (!m || !m.id) return false;
+            
+            // Extract product ID from Shopify media ID format
+            // Example format: "gid://shopify/ProductImage/12345678901234567890"
+            const idParts = m.id.split('/');
+            
+            // Get the last part (the numeric ID)
+            const mediaIdPart = idParts[idParts.length - 1];
+            
+            // Sometimes the product ID is in the second-to-last position
+            const mediaProductIdPart = idParts[idParts.length - 2];
+            
+            // Check various parts of the ID for a match
+            return (
+                mediaIdPart === productId || 
+                mediaProductIdPart === productId ||
+                m.id.includes(productId)
+            );
+        });
+        
+        if (!media) return undefined;
+        
+        // Extract the image URL depending on the media type
+        if (media.mediaContentType === 'IMAGE' && media.image?.url) {
+            return media.image.url;
+        } else if (media.mediaContentType === 'MODEL_3D' && 'previewImage' in media && media.previewImage?.url) {
+            return media.previewImage.url;
+        } else if (media.mediaContentType === 'VIDEO' && 'previewImage' in media && media.previewImage?.url) {
+            return media.previewImage.url;
+        } else if (media.mediaContentType === 'EXTERNAL_VIDEO' && 'previewImage' in media && media.previewImage?.url) {
+            return media.previewImage.url;
         }
-    }, [setItem]);
+        
+        return undefined;
+    }, [allProductMedia]);
     
-    // Select items for the game
+    // Pre-process and store all available product images
+    const [productImages, setProductImages] = useState<Record<string, string>>({});
+    
+    // Load all product images when media becomes available
     useEffect(() => {
-        const selectGameItems = async () => {
+        const loadProductImages = async () => {
+            if (mediaLoading || !allProductMedia || allProductMedia.length === 0) return;
+            
+            console.log("Processing media for products:", uniqueProductIds);
+            
+            const imageMap: Record<string, string> = {};
+            
+            // Process each product ID to get its image
+            for (const productId of uniqueProductIds) {
+                // First try to get from cache
+                let imageUrl = await getCachedImage(productId);                    // If not in cache, try to get from media
+                    if (!imageUrl) {
+                        const mediaUrl = getImageFromMedia(productId);
+                        if (mediaUrl) {
+                            imageUrl = mediaUrl;
+                            
+                            // Cache if found
+                            await cacheProductImage(productId, mediaUrl);
+                        }
+                    }
+                
+                if (imageUrl) {
+                    imageMap[productId] = imageUrl;
+                    console.log(`Found image for product ${productId}: ${imageUrl}`);
+                } else {
+                    console.log(`No image found for product ${productId}`);
+                }
+            }
+            
+            setProductImages(imageMap);
+            setMediaLoaded(true);
+        };
+        
+        loadProductImages();
+    }, [allProductMedia, mediaLoading, uniqueProductIds, getCachedImage, cacheProductImage, getImageFromMedia]);
+    
+    // Initialize game with available items
+    useEffect(() => {
+        const initializeGame = async () => {
             setIsLoading(true);
             
-            // Get unique items and limit to 4
-            const uniqueItems = Array.from(new Set(items.map(item => item.id)))
-                .slice(0, 4);
+            // Wait a short time to ensure we don't block rendering
+            await new Promise(resolve => setTimeout(resolve, 100));
             
-            setSelectedItemIds(uniqueItems);
-                
-            // Create initial cards with emojis as fallbacks
-            const initialCards = await Promise.all(
-                uniqueItems.flatMap(async (id, index) => {
-                    const item = items.find(i => i.id === id);
-                    const emoji = productEmojis[index % productEmojis.length];
-                    
-                    // Try to get cached image
-                    const cachedImage = await getProductImage(id);
-                    
-                    // Create two cards for each item (for matching)
-                    return [0, 1].map(pairIndex => ({
-                        id,
-                        uniqueId: `${id}-${pairIndex}`,
-                        title: item?.title || `Product ${index + 1}`,
-                        image: cachedImage || undefined,
-                        emoji,
-                        isFlipped: false,
-                        isMatched: false
-                    }));
-                })
-            ).then(results => results.flat());
+            // Create cards with placeholders initially
+            const initialCards = uniqueProductIds.flatMap(id => {
+                const item = items.find(i => i.id === id);
+                return [0, 1].map(pairIndex => ({
+                    id,
+                    uniqueId: `${id}-${pairIndex}`,
+                    title: item?.title || "Product",
+                    image: productImages[id], // Set image right away if available
+                    isFlipped: false,
+                    isMatched: false,
+                }));
+            });
             
             // Shuffle the cards
             const shuffledCards = initialCards.sort(() => Math.random() - 0.5);
             setCards(shuffledCards);
+            
+            // Mark as no longer loading
             setIsLoading(false);
         };
 
-        if (items.length > 0) {
-            selectGameItems();
+        // Only initialize game when products and media are ready
+        if (items.length > 0 && mediaLoaded) {
+            initializeGame();
         }
-    }, [items, getProductImage]);
-    
-    // Update cards with fetched images
-    useEffect(() => {
-        const updateCardsWithImages = async () => {
-            if (!productMedia || productMedia.length === 0) return;
-            
-            let updatedCards = [...cards];
-            let hasUpdates = false;
-            
-            // Process each media item
-            for (const media of productMedia) {
-                // Extract product ID from media
-                const productId = media.id.split('/')[4];
-                if (!productId) continue;
-                
-                // Extract image URL
-                let imageUrl: string | undefined;
-                if (media.mediaContentType === 'IMAGE' && media.image?.url) {
-                    imageUrl = media.image.url;
-                } else if (
-                    (media.mediaContentType === 'VIDEO' || media.mediaContentType === 'MODEL_3D') && 
-                    media.previewImage?.url
-                ) {
-                    imageUrl = media.previewImage.url;
-                }
-                
-                if (!imageUrl) continue;
-                
-                // Cache the image
-                await cacheProductImage(productId, imageUrl);
-                
-                // Update all cards with this product ID
-                updatedCards = updatedCards.map(card => {
-                    if (card.id === productId && !card.image) {
-                        hasUpdates = true;
-                        return { ...card, image: imageUrl };
-                    }
-                    return card;
-                });
-            }
-            
-            // Only update state if changes were made
-            if (hasUpdates) {
-                setCards(updatedCards);
-            }
-        };
-        
-        updateCardsWithImages();
-    }, [productMedia, cards, cacheProductImage]);
+    }, [items, mediaLoaded, productImages, uniqueProductIds]);
 
     const handleCardClick = (clickedCard: Card, index: number) => {
         if (flippedCards.length === 2 || clickedCard.isMatched || clickedCard.isFlipped) {
@@ -209,8 +229,11 @@ export const AllItemsFrame = ({ items }: AllItemsFrameProps) => {
                 // Match found
                 setTimeout(() => {
                     const updatedCards = [...newCards];
-                    updatedCards[firstCard.index].isMatched = true;
-                    updatedCards[secondCard.index].isMatched = true;
+                    // Update the cards at the stored indices
+                    if ('index' in firstCard && 'index' in secondCard) {
+                        updatedCards[firstCard.index].isMatched = true;
+                        updatedCards[secondCard.index].isMatched = true;
+                    }
                     setCards(updatedCards);
                     setFlippedCards([]);
                     setMatches(prev => {
@@ -225,14 +248,48 @@ export const AllItemsFrame = ({ items }: AllItemsFrameProps) => {
                 // No match - flip cards back
                 setTimeout(() => {
                     const updatedCards = [...newCards];
-                    updatedCards[firstCard.index].isFlipped = false;
-                    updatedCards[secondCard.index].isFlipped = false;
+                    // Update the cards at the stored indices
+                    if ('index' in firstCard && 'index' in secondCard) {
+                        updatedCards[firstCard.index].isFlipped = false;
+                        updatedCards[secondCard.index].isFlipped = false;
+                    }
                     setCards(updatedCards);
                     setFlippedCards([]);
                 }, 1000);
             }
         }
     };
+
+    // Debugging information
+    useEffect(() => {
+        if (allProductMedia && allProductMedia.length > 0) {
+            console.log("Media loaded:", allProductMedia.length, "items");
+            console.log("Product IDs in game:", uniqueProductIds);
+            
+            allProductMedia.forEach(media => {
+                if (!media || !media.id) return;
+                
+                const idParts = media.id.split('/');
+                const mediaIdPart = idParts[idParts.length - 1];
+                const mediaProductIdPart = idParts[idParts.length - 2];
+                
+                console.log(`Media ID: ${media.id}`);
+                console.log(`Last part: ${mediaIdPart}, Second-to-last: ${mediaProductIdPart}`);
+                
+                if (media.mediaContentType === 'IMAGE' && media.image?.url) {
+                    console.log(`Image URL: ${media.image.url}`);
+                } else if (
+                    (media.mediaContentType === 'MODEL_3D' || 
+                     media.mediaContentType === 'VIDEO' || 
+                     media.mediaContentType === 'EXTERNAL_VIDEO') && 
+                    'previewImage' in media && 
+                    media.previewImage?.url
+                ) {
+                    console.log(`Preview URL: ${media.previewImage.url}`);
+                }
+            });
+        }
+    }, [allProductMedia, uniqueProductIds]);
 
     return (
         <StoryFrameTemplate
@@ -272,35 +329,43 @@ export const AllItemsFrame = ({ items }: AllItemsFrameProps) => {
                                 `}
                                 disabled={card.isMatched}
                             >
+                                {/* Front of card (visible when flipped) */}
                                 <div 
                                     className={`
                                         absolute inset-0 m-2 rounded-lg overflow-hidden
                                         flex items-center justify-center bg-white/10
                                         transition-all duration-300
-                                        ${card.isFlipped || card.isMatched ? 'opacity-100' : 'opacity-0'}
+                                        ${card.isFlipped || card.isMatched ? 'opacity-100 z-10' : 'opacity-0 z-0'}
                                     `}
                                 >
                                     {card.image ? (
                                         <img 
-                                            src={card.image} 
+                                            src={card.image}
                                             alt={card.title}
                                             className="w-full h-full object-cover"
                                             loading="lazy"
                                             onError={(e) => {
-                                                // If image fails to load, show emoji fallback
-                                                e.currentTarget.style.display = 'none';
-                                                e.currentTarget.parentElement!.innerHTML = `<div class="text-4xl">${card.emoji}</div>`;
+                                                console.error(`Image failed to load for ${card.id}`);
+                                                // Replace with emoji if image fails to load
+                                                const target = e.target as HTMLImageElement;
+                                                target.style.display = 'none';
+                                                const parent = target.parentElement;
+                                                if (parent) {
+                                                    parent.innerHTML += '<div class="text-2xl">📦</div>';
+                                                }
                                             }}
                                         />
                                     ) : (
-                                        <div className="text-4xl">{card.emoji}</div>
+                                        <div className="text-2xl">📦</div>
                                     )}
                                 </div>
+                                
+                                {/* Back of card (question mark) */}
                                 <div 
                                     className={`
                                         absolute inset-0 flex items-center justify-center
                                         text-3xl transition-all duration-300
-                                        ${card.isFlipped || card.isMatched ? 'opacity-0' : 'opacity-100'}
+                                        ${card.isFlipped || card.isMatched ? 'opacity-0 z-0' : 'opacity-100 z-10'}
                                     `}
                                 >
                                     ❔

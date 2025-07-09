@@ -65,11 +65,13 @@ export const TopProductFrame = ({
     let productImage: string | undefined;
 
     if (firstMedia) {
-        if (firstMedia.mediaContentType === "IMAGE") {
-            productImage = firstMedia.image?.url;
-        } else if (firstMedia.mediaContentType === "VIDEO") {
-            productImage = firstMedia.previewImage?.url;
-        } else if (firstMedia.previewImage) {
+        if (firstMedia.mediaContentType === "IMAGE" && firstMedia.image?.url) {
+            productImage = firstMedia.image.url;
+        } else if (firstMedia.mediaContentType === "VIDEO" && 'previewImage' in firstMedia && firstMedia.previewImage?.url) {
+            productImage = firstMedia.previewImage.url;
+        } else if (firstMedia.mediaContentType === "MODEL_3D" && 'previewImage' in firstMedia && firstMedia.previewImage?.url) {
+            productImage = firstMedia.previewImage.url;
+        } else if (firstMedia.mediaContentType === "EXTERNAL_VIDEO" && 'previewImage' in firstMedia && firstMedia.previewImage?.url) {
             productImage = firstMedia.previewImage.url;
         }
     }
@@ -99,6 +101,11 @@ export const TopProductFrame = ({
                                     animationDuration: `${6 + Math.random() * 4}s`,
                                     transform: `rotate(${Math.random() * 30 - 15}deg)`,
                                 }}
+                                onError={(e) => {
+                                    // Just hide the image on error for the background elements
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                }}
                             />
                         );
                     })}
@@ -116,6 +123,16 @@ export const TopProductFrame = ({
                                 src={productImage}
                                 alt={product || "Top product"}
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                    console.error(`Image failed to load for top product: ${productId}`);
+                                    // Replace with emoji if image fails to load
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                        parent.innerHTML += '<div class="text-5xl flex items-center justify-center w-full h-full">🛍️</div>';
+                                    }
+                                }}
                             />
                         </div>
                     )}
