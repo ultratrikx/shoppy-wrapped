@@ -7,6 +7,7 @@ import {
     useFollowedShops,
     useRecommendedProducts,
     useShare,
+    useProductMedia,
 } from "@shopify/shop-minis-react";
 import html2canvas from "html2canvas";
 import { generateShoppingPersona } from "./services/openai";
@@ -19,12 +20,18 @@ interface ShoppingStats {
     totalSpent: number;
     favoriteShop?: string;
     topProduct?: string;
+    topProductId?: string; // Add product ID for fetching images
     shoppingStreak: number;
     avgOrderValue: number;
     topCategory?: string;
     persona?: string;
     personaDescription?: string;
     moneySaved?: number; // Add moneySaved to stats
+    allPurchasedItems?: Array<{
+        id: string;
+        title: string;
+        quantity: number;
+    }>; // Add all purchased items
 }
 
 const storyFrames = [
@@ -37,6 +44,7 @@ const storyFrames = [
     "topProduct",
     "shoppingStyle",
     "yearInNumbers",
+    "allItems", // Added allItems frame
     "personality",
     "share",
 ] as const;
@@ -169,20 +177,36 @@ export function App() {
         const productCounts = orders.reduce((acc, order) => {
             order.lineItems?.forEach((item) => {
                 const title = item.productTitle || "Unknown Product";
-                acc[title] = (acc[title] || 0) + (item.quantity || 1);
+                const productId = item.product?.id;
+                if (!acc[title]) {
+                    acc[title] = { count: 0, productId };
+                }
+                acc[title].count += item.quantity || 1;
             });
             return acc;
-        }, {} as Record<string, number>);
+        }, {} as Record<string, { count: number; productId?: string }>);
 
-        const topProduct = Object.entries(productCounts).sort(
-            ([, a], [, b]) => b - a
-        )[0]?.[0];
+        const topProductEntry = Object.entries(productCounts).sort(
+            ([, a], [, b]) => b.count - a.count
+        )[0];
+
+        const topProduct = topProductEntry?.[0];
+        const topProductId = topProductEntry?.[1]?.productId;
+
+        // Collect all purchased items with their IDs
+        const allPurchasedItems = Object.entries(productCounts).map(
+            ([title, data]) => ({
+                id: data.productId || "",
+                title,
+                quantity: data.count,
+            })
+        );
 
         // Get top products for OpenAI analysis
         const topProducts = Object.entries(productCounts)
-            .sort(([, a], [, b]) => b - a)
+            .sort(([, a], [, b]) => b.count - a.count)
             .slice(0, 5)
-            .map(([name, count]) => ({ name, count }));
+            .map(([name, data]) => ({ name, count: data.count }));
 
         // Calculate shopping streak (consecutive months with orders)
         // Use current date as fallback since createdAt might not be available
@@ -227,10 +251,12 @@ export function App() {
             totalSpent,
             favoriteShop,
             topProduct,
+            topProductId,
             shoppingStreak: streak,
             avgOrderValue,
             topCategory: "Fashion", // Could be derived from product data
             moneySaved: purchaseSummary.totalSaved, // Use real value
+            allPurchasedItems,
         };
 
         // Instead of setting stats immediately, wait for OpenAI response
@@ -307,6 +333,7 @@ export function App() {
             }, 300);
             return () => clearInterval(interval);
         }
+        return undefined;
     }, [currentFrame]);
 
     const captureAndShareToInstagram = async () => {
@@ -475,13 +502,21 @@ export function App() {
                 return <FavoriteShopFrame shop={stats.favoriteShop} />;
 
             case "topProduct":
-                return <TopProductFrame product={stats.topProduct} />;
+                return (
+                    <TopProductFrame
+                        product={stats.topProduct}
+                        productId={stats.topProductId}
+                    />
+                );
 
             case "shoppingStyle":
                 return <ShoppingStyleFrame stats={stats} />;
 
             case "yearInNumbers":
                 return <YearInNumbersFrame stats={stats} />;
+
+            case "allItems":
+                return <AllItemsFrame items={stats.allPurchasedItems || []} />;
 
             case "personality":
                 return (
@@ -987,66 +1022,121 @@ const FavoriteShopFrame = ({ shop }: { shop?: string }) => (
 );
 
 // Top Product Frame
-const TopProductFrame = ({ product }: { product?: string }) => (
-    <div className="h-full bg-gradient-to-br from-indigo-500 via-indigo-600 to-indigo-700 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
-        <AnimatedEmojis
-            emojis={[
-                {
-                    emoji: "⭐",
-                    top: "10%",
-                    left: "8%",
-                    size: "4.2rem",
-                    delay: "0s",
-                },
-                {
-                    emoji: "👟",
-                    top: "20%",
-                    right: "10%",
-                    size: "2.8rem",
-                    delay: "0.5s",
-                },
-                {
-                    emoji: "🧢",
-                    bottom: "18%",
-                    left: "12%",
-                    size: "3.5rem",
-                    delay: "1s",
-                },
-                {
-                    emoji: "👗",
-                    bottom: "12%",
-                    right: "10%",
-                    size: "2.3rem",
-                    delay: "1.5s",
-                },
-                {
-                    emoji: "👜",
-                    top: "60%",
-                    right: "5%",
-                    size: "2.7rem",
-                    delay: "2s",
-                },
-                {
-                    emoji: "🎒",
-                    bottom: "8%",
-                    left: "20%",
-                    size: "3.1rem",
-                    delay: "2.5s",
-                },
-            ]}
-        />
-        <div className="text-center space-y-8">
-            <div className="text-6xl mb-4">⭐</div>
-            <h2 className="text-2xl font-light opacity-90">
-                Most ordered item
-            </h2>
-            <div className="text-2xl font-bold max-w-xs">
-                {product || "Various products"}
+const TopProductFrame = ({
+    product,
+    productId,
+}: {
+    product?: string;
+    productId?: string;
+}) => {
+    const { media } = useProductMedia({
+        id: productId || "",
+        skip: !productId,
+        first: 1, // Only need the first image
+    });
+
+    // Get the first image from media
+    const firstMedia = media?.[0];
+    let productImage: string | undefined;
+
+    if (firstMedia) {
+        if (firstMedia.mediaContentType === "IMAGE") {
+            productImage = firstMedia.image?.url;
+        } else if (firstMedia.mediaContentType === "VIDEO") {
+            productImage = firstMedia.previewImage?.url;
+        } else if (firstMedia.previewImage) {
+            productImage = firstMedia.previewImage.url;
+        }
+    }
+
+    return (
+        <div className="h-full bg-gradient-to-br from-indigo-500 via-indigo-600 to-indigo-700 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
+            {/* Falling product images - only show if we have a product image */}
+            {productImage && (
+                <div className="absolute inset-0 overflow-hidden">
+                    {Array.from({ length: 12 }, (_, i) => (
+                        <img
+                            key={i}
+                            src={productImage}
+                            alt=""
+                            className="animate-rainfall w-8 h-8 object-cover rounded-md opacity-20"
+                        />
+                    ))}
+                </div>
+            )}
+
+            <AnimatedEmojis
+                emojis={[
+                    {
+                        emoji: "⭐",
+                        top: "10%",
+                        left: "8%",
+                        size: "4.2rem",
+                        delay: "0s",
+                    },
+                    {
+                        emoji: "👟",
+                        top: "20%",
+                        right: "10%",
+                        size: "2.8rem",
+                        delay: "0.5s",
+                    },
+                    {
+                        emoji: "🧢",
+                        bottom: "18%",
+                        left: "12%",
+                        size: "3.5rem",
+                        delay: "1s",
+                    },
+                    {
+                        emoji: "👗",
+                        bottom: "12%",
+                        right: "10%",
+                        size: "2.3rem",
+                        delay: "1.5s",
+                    },
+                    {
+                        emoji: "👜",
+                        top: "60%",
+                        right: "5%",
+                        size: "2.7rem",
+                        delay: "2s",
+                    },
+                    {
+                        emoji: "🎒",
+                        bottom: "8%",
+                        left: "20%",
+                        size: "3.1rem",
+                        delay: "2.5s",
+                    },
+                ]}
+            />
+            <div className="text-center space-y-8 relative z-10">
+                {productImage ? (
+                    <div className="relative">
+                        <img
+                            src={productImage}
+                            alt={product || "Top product"}
+                            className="w-32 h-32 object-cover rounded-2xl shadow-2xl border-4 border-white/20 mx-auto"
+                        />
+                        <div className="absolute -top-2 -right-2 text-4xl">
+                            ⭐
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-6xl mb-4">⭐</div>
+                )}
+                <h2 className="text-2xl font-light opacity-90">
+                    Most ordered item
+                </h2>
+                <div className="text-2xl font-bold max-w-xs">
+                    {product || "Various products"}
+                </div>
+                <p className="text-lg opacity-80">Your go-to purchase</p>
             </div>
-            <p className="text-lg opacity-80">Your go-to purchase</p>
         </div>
-    </div>
-);
+    );
+};
 
 // Shopping Style Frame
 const ShoppingStyleFrame = ({ stats }: { stats: ShoppingStats }) => (
@@ -1198,6 +1288,136 @@ const YearInNumbersFrame = ({ stats }: { stats: ShoppingStats }) => (
         </div>
     </div>
 );
+
+// All Items Frame
+const AllItemsFrame = ({
+    items,
+}: {
+    items: Array<{ id: string; title: string; quantity: number }>;
+}) => {
+    return (
+        <div className="h-full bg-gradient-to-br from-cyan-500 via-cyan-600 to-cyan-700 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
+            <AnimatedEmojis
+                emojis={[
+                    {
+                        emoji: "🛍️",
+                        top: "10%",
+                        left: "8%",
+                        size: "3.5rem",
+                        delay: "0s",
+                    },
+                    {
+                        emoji: "📦",
+                        top: "20%",
+                        right: "10%",
+                        size: "2.8rem",
+                        delay: "0.5s",
+                    },
+                    {
+                        emoji: "🎁",
+                        bottom: "18%",
+                        left: "12%",
+                        size: "3.2rem",
+                        delay: "1s",
+                    },
+                    {
+                        emoji: "🏪",
+                        bottom: "12%",
+                        right: "10%",
+                        size: "2.5rem",
+                        delay: "1.5s",
+                    },
+                    {
+                        emoji: "💝",
+                        top: "60%",
+                        right: "5%",
+                        size: "2.7rem",
+                        delay: "2s",
+                    },
+                    {
+                        emoji: "🛒",
+                        bottom: "8%",
+                        left: "20%",
+                        size: "3.1rem",
+                        delay: "2.5s",
+                    },
+                ]}
+            />
+            <div className="text-center space-y-6 relative z-10">
+                <h2 className="text-3xl font-bold mb-6">All your purchases</h2>
+                <p className="text-lg opacity-90 mb-8">
+                    Everything you bought this year
+                </p>
+
+                <div className="max-h-96 overflow-y-auto scrollbar-hide">
+                    <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+                        {items.slice(0, 12).map((item, index) => (
+                            <ProductCard
+                                key={`${item.id}-${index}`}
+                                item={item}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {items.length > 12 && (
+                    <p className="text-sm opacity-70 mt-4">
+                        And {items.length - 12} more items! 🎉
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// Product Card Component
+const ProductCard = ({
+    item,
+}: {
+    item: { id: string; title: string; quantity: number };
+}) => {
+    const { media } = useProductMedia({
+        id: item.id,
+        skip: !item.id,
+        first: 1,
+    });
+
+    // Get the first image from media
+    const firstMedia = media?.[0];
+    let productImage: string | undefined;
+
+    if (firstMedia) {
+        if (firstMedia.mediaContentType === "IMAGE") {
+            productImage = firstMedia.image?.url;
+        } else if (firstMedia.mediaContentType === "VIDEO") {
+            productImage = firstMedia.previewImage?.url;
+        } else if (firstMedia.previewImage) {
+            productImage = firstMedia.previewImage.url;
+        }
+    }
+
+    return (
+        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 transition-transform hover:scale-105">
+            <div className="aspect-square mb-2 bg-white/20 rounded-md flex items-center justify-center overflow-hidden">
+                {productImage ? (
+                    <img
+                        src={productImage}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <div className="text-2xl">📦</div>
+                )}
+            </div>
+            <div className="text-center">
+                <p className="text-xs font-medium truncate" title={item.title}>
+                    {item.title}
+                </p>
+                <p className="text-xs opacity-70 mt-1">Qty: {item.quantity}</p>
+            </div>
+        </div>
+    );
+};
 
 // Personality Frame
 const PersonalityFrame = ({
