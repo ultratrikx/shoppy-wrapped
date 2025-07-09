@@ -34,6 +34,18 @@
     }
 }
 
+/* Fade out animation */
+@keyframes fadeOut {
+    0%,
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
 .animate-float {
     animation: float 3s ease-in-out infinite;
 }
@@ -43,6 +55,10 @@
     animation: rainfall linear infinite;
     will-change: transform;
     --rotation: 0deg;
+}
+
+.animate-fade-out {
+    animation: fadeOut 3s forwards;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */

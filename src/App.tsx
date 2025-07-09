@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useShare } from "@shopify/shop-minis-react";
 import html2canvas from "html2canvas";
 import { useStoryState, storyFrames } from "./hooks/useStoryState";
@@ -32,7 +32,79 @@ export function App() {
     } = useStoryState();
 
     const [isCapturing, setIsCapturing] = useState(false);
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
     const shareFrameRef = useRef<HTMLDivElement>(null);
+
+    // Minimum distance for a swipe
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe && currentFrame !== "analyzing") {
+            nextFrame();
+        } else if (isRightSwipe && currentFrameIndex > 0) {
+            prevFrame();
+        }
+
+        setTouchStart(null);
+        setTouchEnd(null);
+    };
+
+    // Mouse swipe handling
+    const [mouseStart, setMouseStart] = useState<number | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const onMouseDown = (e: React.MouseEvent) => {
+        setMouseStart(e.clientX);
+        setIsDragging(true);
+    };
+
+    const onMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging) return;
+
+        const distance = mouseStart! - e.clientX;
+        // Only prevent default if we detect a significant drag
+        if (Math.abs(distance) > minSwipeDistance) {
+            e.preventDefault();
+        }
+    };
+
+    const onMouseUp = (e: React.MouseEvent) => {
+        if (!mouseStart || !isDragging) return;
+
+        const distance = mouseStart - e.clientX;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe && currentFrame !== "analyzing") {
+            nextFrame();
+        } else if (isRightSwipe && currentFrameIndex > 0) {
+            prevFrame();
+        }
+
+        setMouseStart(null);
+        setIsDragging(false);
+    };
+
+    const onMouseLeave = () => {
+        setMouseStart(null);
+        setIsDragging(false);
+    };
 
     const shareWrapped = async () => {
         if (share) {
@@ -215,7 +287,16 @@ export function App() {
     };
 
     return (
-        <div className="relative h-screen w-full overflow-hidden">
+        <div
+            className="relative h-screen w-full overflow-hidden bg-gradient-to-br from-pink-500 to-purple-600"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp}
+            onMouseLeave={onMouseLeave}
+        >
             {/* Progress bar */}
             <div className="absolute top-4 left-4 right-4 z-50">
                 <div className="flex gap-1">
@@ -232,24 +313,15 @@ export function App() {
                 </div>
             </div>
 
-            {/* Navigation overlay */}
-            {!isCapturing && (
-                <div className="absolute inset-0 z-40 flex">
-                    <button
-                        className="flex-1 h-full"
-                        onClick={prevFrame}
-                        disabled={currentFrameIndex === 0}
-                    />
-                    <button
-                        className="flex-1 h-full"
-                        onClick={nextFrame}
-                        disabled={currentFrame === "analyzing" && isAnalyzing}
-                    />
-                </div>
-            )}
-
             {/* Frame content */}
             <div className="h-full w-full">{renderFrame()}</div>
+
+            {/* Optional swipe hint - shows briefly when the component mounts */}
+            {currentFrameIndex === 0 && (
+                <div className="absolute bottom-8 left-0 right-0 text-center text-white/70 text-sm animate-fade-out">
+                    Swipe to navigate ←→
+                </div>
+            )}
         </div>
     );
 }
