@@ -1289,53 +1289,339 @@ const YearInNumbersFrame = ({ stats }: { stats: ShoppingStats }) => (
     </div>
 );
 
-// All Items Frame
+// Concentration Game Types
+interface GameCard {
+    id: string;
+    item: { id: string; title: string; quantity: number };
+    isFlipped: boolean;
+    isMatched: boolean;
+    pairId: string;
+}
+
+interface GameState {
+    cards: GameCard[];
+    flippedCards: GameCard[];
+    matches: number;
+    turns: number;
+    gameWon: boolean;
+    isProcessing: boolean;
+}
+
+// Game Card Component
+const GameCard = ({
+    card,
+    onFlip,
+    delay,
+}: {
+    card: GameCard;
+    onFlip: () => void;
+    delay: number;
+}) => {
+    const { media } = useProductMedia({
+        id: card.item.id,
+        skip: !card.item.id,
+        first: 1,
+    });
+    
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
+    
+    // Get the first image from media
+    const firstMedia = media?.[0];
+    let productImage: string | undefined;
+    
+    if (firstMedia) {
+        if (firstMedia.mediaContentType === "IMAGE") {
+            productImage = firstMedia.image?.url;
+        } else if (firstMedia.mediaContentType === "VIDEO") {
+            productImage = firstMedia.previewImage?.url;
+        } else if (firstMedia.previewImage) {
+            productImage = firstMedia.previewImage.url;
+        }
+    }
+    
+    return (
+        <div
+            className="aspect-square animate-slide-up"
+            style={{ animationDelay: `${delay}s` }}
+        >
+            <div 
+                className={`relative w-full h-full cursor-pointer transition-all duration-500 transform-gpu ${
+                    card.isFlipped ? 'scale-105' : 'hover:scale-95'
+                } ${card.isMatched ? 'opacity-50' : ''}`}
+                onClick={onFlip}
+            >
+                {/* Card container with flip animation */}
+                <div 
+                    className={`relative w-full h-full transition-transform duration-500 transform-style-preserve-3d ${
+                        card.isFlipped ? 'rotate-y-180' : ''
+                    }`}
+                >
+                    {/* Card back (face down) */}
+                    <div className="absolute inset-0 w-full h-full backface-hidden">
+                        <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-lg flex items-center justify-center border-2 border-white/20">
+                            <div className="text-center">
+                                <div className="text-2xl mb-1">🎁</div>
+                                <div className="text-xs font-semibold">?</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Card front (face up) */}
+                    <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180">
+                        <div className={`w-full h-full bg-white rounded-lg shadow-lg overflow-hidden border-2 transition-colors duration-300 ${
+                            card.isMatched ? 'border-green-400' : 'border-gray-200'
+                        }`}>
+                            {/* Product image */}
+                            <div className="h-2/3 bg-gray-100 flex items-center justify-center overflow-hidden">
+                                {productImage && !imageError ? (
+                                    <img
+                                        src={productImage}
+                                        alt={card.item.title}
+                                        className={`w-full h-full object-cover transition-opacity duration-300 ${
+                                            imageLoaded ? 'opacity-100' : 'opacity-0'
+                                        }`}
+                                        onLoad={() => setImageLoaded(true)}
+                                        onError={() => setImageError(true)}
+                                    />
+                                ) : (
+                                    <div className="text-gray-400 text-lg">📦</div>
+                                )}
+                            </div>
+                            
+                            {/* Product title */}
+                            <div className="h-1/3 p-2 flex items-center justify-center">
+                                <p className="text-xs font-medium text-gray-800 text-center leading-tight line-clamp-2">
+                                    {card.item.title}
+                                </p>
+                            </div>
+                            
+                            {/* Quantity badge */}
+                            {card.item.quantity > 1 && (
+                                <div className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                                    {card.item.quantity}
+                                </div>
+                            )}
+                            
+                            {/* Match indicator */}
+                            {card.isMatched && (
+                                <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
+                                    <div className="text-green-600 text-2xl">✓</div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// All Items Frame - Concentration Game
 const AllItemsFrame = ({
     items,
 }: {
     items: Array<{ id: string; title: string; quantity: number }>;
 }) => {
+    // Game state
+    const [gameState, setGameState] = useState<GameState>({
+        cards: [],
+        flippedCards: [],
+        matches: 0,
+        turns: 0,
+        gameWon: false,
+        isProcessing: false,
+    });
+    
+    const [gameStarted, setGameStarted] = useState(false);
+    
+    // Initialize game
+    const initializeGame = () => {
+        // Take the first 8 items to create pairs (16 cards total)
+        const gameItems = items.slice(0, 8);
+        
+        // Create pairs of cards
+        const cardPairs: GameCard[] = [];
+        gameItems.forEach((item, index) => {
+            const pairId = `pair-${index}`;
+            // Create two cards for each item
+            cardPairs.push(
+                {
+                    id: `${item.id}-1`,
+                    item,
+                    isFlipped: false,
+                    isMatched: false,
+                    pairId,
+                },
+                {
+                    id: `${item.id}-2`,
+                    item,
+                    isFlipped: false,
+                    isMatched: false,
+                    pairId,
+                }
+            );
+        });
+        
+        // Shuffle the cards
+        const shuffledCards = [...cardPairs].sort(() => Math.random() - 0.5);
+        
+        setGameState({
+            cards: shuffledCards,
+            flippedCards: [],
+            matches: 0,
+            turns: 0,
+            gameWon: false,
+            isProcessing: false,
+        });
+        setGameStarted(true);
+    };
+    
+    // Handle card flip
+    const handleCardFlip = (cardId: string) => {
+        if (gameState.isProcessing) return;
+        
+        const card = gameState.cards.find(c => c.id === cardId);
+        if (!card || card.isFlipped || card.isMatched) return;
+        
+        setGameState(prev => {
+            const newCards = prev.cards.map(c => 
+                c.id === cardId ? { ...c, isFlipped: true } : c
+            );
+            
+            const newFlippedCards = [...prev.flippedCards, card];
+            
+            // If this is the second card flipped
+            if (newFlippedCards.length === 2) {
+                const [firstCard, secondCard] = newFlippedCards;
+                const isMatch = firstCard.pairId === secondCard.pairId;
+                
+                if (isMatch) {
+                    // It's a match!
+                    const matchedCards = newCards.map(c => 
+                        c.pairId === firstCard.pairId ? { ...c, isMatched: true } : c
+                    );
+                    
+                    const newMatches = prev.matches + 1;
+                    const gameWon = newMatches === 8; // 8 pairs total
+                    
+                    return {
+                        cards: matchedCards,
+                        flippedCards: [],
+                        matches: newMatches,
+                        turns: prev.turns + 1,
+                        gameWon,
+                        isProcessing: false,
+                    };
+                } else {
+                    // Not a match, flip cards back after delay
+                    setTimeout(() => {
+                        setGameState(current => ({
+                            ...current,
+                            cards: current.cards.map(c => 
+                                c.id === firstCard.id || c.id === secondCard.id 
+                                    ? { ...c, isFlipped: false }
+                                    : c
+                            ),
+                            flippedCards: [],
+                            isProcessing: false,
+                        }));
+                    }, 1500);
+                    
+                    return {
+                        cards: newCards,
+                        flippedCards: newFlippedCards,
+                        matches: prev.matches,
+                        turns: prev.turns + 1,
+                        gameWon: false,
+                        isProcessing: true,
+                    };
+                }
+            }
+            
+            return {
+                cards: newCards,
+                flippedCards: newFlippedCards,
+                matches: prev.matches,
+                turns: prev.turns,
+                gameWon: false,
+                isProcessing: false,
+            };
+        });
+    };
+    
+    // Reset game
+    const resetGame = () => {
+        setGameStarted(false);
+        setGameState({
+            cards: [],
+            flippedCards: [],
+            matches: 0,
+            turns: 0,
+            gameWon: false,
+            isProcessing: false,
+        });
+    };
+
     return (
-        <div className="h-full bg-gradient-to-br from-cyan-500 via-cyan-600 to-cyan-700 flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
+        <div className="h-full bg-gradient-to-br from-cyan-500 via-cyan-600 to-cyan-700 flex flex-col items-center justify-center text-white p-6 relative overflow-hidden">
+            {/* Floating game icons background */}
+            <div className="absolute inset-0 overflow-hidden">
+                {Array.from({ length: 12 }, (_, i) => (
+                    <div
+                        key={i}
+                        className="absolute animate-float opacity-10"
+                        style={{
+                            left: `${Math.random() * 100}%`,
+                            top: `${Math.random() * 100}%`,
+                            animationDelay: `${Math.random() * 3}s`,
+                            animationDuration: `${3 + Math.random() * 2}s`,
+                        }}
+                    >
+                        {['🎮', '🃏', '�', '🏆', '⭐', '🎊', '🎉', '�', '�', '🎪'][Math.floor(Math.random() * 10)]}
+                    </div>
+                ))}
+            </div>
+            
             <AnimatedEmojis
                 emojis={[
                     {
-                        emoji: "🛍️",
+                        emoji: "🎮",
                         top: "10%",
                         left: "8%",
                         size: "3.5rem",
                         delay: "0s",
                     },
                     {
-                        emoji: "📦",
+                        emoji: "🃏",
                         top: "20%",
                         right: "10%",
                         size: "2.8rem",
                         delay: "0.5s",
                     },
                     {
-                        emoji: "🎁",
+                        emoji: "�",
                         bottom: "18%",
                         left: "12%",
                         size: "3.2rem",
                         delay: "1s",
                     },
                     {
-                        emoji: "🏪",
+                        emoji: "�",
                         bottom: "12%",
                         right: "10%",
                         size: "2.5rem",
                         delay: "1.5s",
                     },
                     {
-                        emoji: "💝",
+                        emoji: "⭐",
                         top: "60%",
                         right: "5%",
                         size: "2.7rem",
                         delay: "2s",
                     },
                     {
-                        emoji: "🛒",
+                        emoji: "🎊",
                         bottom: "8%",
                         left: "20%",
                         size: "3.1rem",
@@ -1343,27 +1629,73 @@ const AllItemsFrame = ({
                     },
                 ]}
             />
-            <div className="text-center space-y-6 relative z-10">
-                <h2 className="text-3xl font-bold mb-6">All your purchases</h2>
-                <p className="text-lg opacity-90 mb-8">
-                    Everything you bought this year
-                </p>
-
-                <div className="max-h-96 overflow-y-auto scrollbar-hide">
-                    <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-                        {items.slice(0, 12).map((item, index) => (
-                            <ProductCard
-                                key={`${item.id}-${index}`}
-                                item={item}
-                            />
-                        ))}
+            
+            <div className="text-center space-y-4 relative z-10 w-full max-w-2xl">
+                {!gameStarted ? (
+                    // Game intro screen
+                    <div className="space-y-6">
+                        <h2 className="text-4xl font-bold mb-4">🎮 Shopping Memory Game</h2>
+                        <p className="text-lg opacity-90">
+                            Match pairs of your purchased items!
+                        </p>
+                        <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 max-w-md mx-auto">
+                            <p className="text-sm opacity-80">
+                                🎯 Find matching pairs by flipping cards<br/>
+                                🧠 Remember where items are located<br/>
+                                🏆 Match all 8 pairs to win!
+                            </p>
+                        </div>
+                        <button
+                            onClick={initializeGame}
+                            className="px-8 py-4 bg-white/20 hover:bg-white/30 rounded-full font-semibold text-lg transition-all transform hover:scale-105"
+                        >
+                            🎮 Start Game
+                        </button>
                     </div>
-                </div>
-
-                {items.length > 12 && (
-                    <p className="text-sm opacity-70 mt-4">
-                        And {items.length - 12} more items! 🎉
-                    </p>
+                ) : (
+                    // Game board
+                    <div className="space-y-4">
+                        {/* Game header */}
+                        <div className="flex justify-between items-center max-w-md mx-auto">
+                            <h2 className="text-2xl font-bold">Memory Game</h2>
+                            <button
+                                onClick={resetGame}
+                                className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-full text-sm transition-all"
+                            >
+                                🔄 Reset
+                            </button>
+                        </div>
+                        
+                        {/* Game stats */}
+                        <div className="flex justify-center space-x-8 text-sm opacity-90">
+                            <div>🎯 Matches: {gameState.matches}/8</div>
+                            <div>🔄 Turns: {gameState.turns}</div>
+                        </div>
+                        
+                        {/* Win message */}
+                        {gameState.gameWon && (
+                            <div className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-6 py-3 rounded-full font-bold text-lg animate-pulse">
+                                🎉 Congratulations! You won in {gameState.turns} turns! 🏆
+                            </div>
+                        )}
+                        
+                        {/* Game board */}
+                        <div className="grid grid-cols-4 gap-3 max-w-md mx-auto">
+                            {gameState.cards.map((card, index) => (
+                                <GameCard
+                                    key={card.id}
+                                    card={card}
+                                    onFlip={() => handleCardFlip(card.id)}
+                                    delay={index * 0.05}
+                                />
+                            ))}
+                        </div>
+                        
+                        {/* Game tip */}
+                        <div className="text-xs opacity-60 mt-4">
+                            💡 Tip: Remember where you've seen each item!
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
@@ -1373,8 +1705,10 @@ const AllItemsFrame = ({
 // Product Card Component
 const ProductCard = ({
     item,
+    delay = 0,
 }: {
     item: { id: string; title: string; quantity: number };
+    delay?: number;
 }) => {
     const { media } = useProductMedia({
         id: item.id,
@@ -1397,8 +1731,11 @@ const ProductCard = ({
     }
 
     return (
-        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 transition-transform hover:scale-105">
-            <div className="aspect-square mb-2 bg-white/20 rounded-md flex items-center justify-center overflow-hidden">
+        <div 
+            className="bg-white/15 backdrop-blur-sm rounded-lg p-2 transition-all duration-300 hover:scale-105 hover:bg-white/25 animate-slide-up"
+            style={{ animationDelay: `${delay}s` }}
+        >
+            <div className="aspect-square mb-2 bg-white/20 rounded-md flex items-center justify-center overflow-hidden relative">
                 {productImage ? (
                     <img
                         src={productImage}
@@ -1406,14 +1743,19 @@ const ProductCard = ({
                         className="w-full h-full object-cover"
                     />
                 ) : (
-                    <div className="text-2xl">📦</div>
+                    <div className="text-lg">📦</div>
+                )}
+                {/* Quantity badge */}
+                {item.quantity > 1 && (
+                    <div className="absolute top-1 right-1 bg-cyan-500 text-white text-xs px-1 py-0.5 rounded-full font-bold">
+                        {item.quantity}
+                    </div>
                 )}
             </div>
             <div className="text-center">
                 <p className="text-xs font-medium truncate" title={item.title}>
                     {item.title}
                 </p>
-                <p className="text-xs opacity-70 mt-1">Qty: {item.quantity}</p>
             </div>
         </div>
     );
